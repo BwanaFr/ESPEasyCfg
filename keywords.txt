@@ -1,0 +1,10 @@
+#######################################
+# Syntax Coloring Map For Ultrasound
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+ESPEasyCfg	KEYWORD1
+ESPEasyCfgParameter	KEYWORD1

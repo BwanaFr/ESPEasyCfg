@@ -1,0 +1,31 @@
+{
+  "name": "ESPEasyCfg",
+  "keywords": "http, web",
+  "description": "A simple to use configuration library for your IoT.",
+  "homepage": "https://github.com/BwanaFr/ESPEasyCfg",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BwanaFr/ESPEasyCfg.git"
+  },
+  "version": "1.0.0",
+  "authors": {
+    "name": "Mathieu Donze",
+    "url": "https://github.com/BwanaFr"
+  },
+  "exclude": [
+    "fuzzing",
+    "scripts",
+    "test",
+    "third-party"
+  ],
+  "frameworks": "arduino",
+  "platforms": ["espressif8266", "espressif32"],
+  "dependencies": [
+    {
+      "name": "ESP Async WebServer",
+    },
+    {
+      "name": "ArduinoJson",
+    }
+  ]
+}
