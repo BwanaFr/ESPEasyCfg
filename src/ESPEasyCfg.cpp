@@ -1,14 +1,15 @@
 #include "ESPEasyCfg.h"
 #include <AsyncJson.h>
 #include <ArduinoJson.hpp>
-#include <FS.h>
 
 #ifdef ESP32
 #include <WiFi.h>
 #include <esp_task_wdt.h>
+#include <SPIFFS.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
 #define WIFI_AUTH_OPEN ENC_TYPE_NONE
+#include <FS.h>
 #else
 #error Platform not supported
 #endif

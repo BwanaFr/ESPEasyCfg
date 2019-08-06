@@ -1,7 +1,12 @@
 #include "ESPEasyCfgParameterManagerJSON.h"
-#include <FS.h>
 #include <ArduinoJson.h>
 #include "ESPEasyCfgConfiguration.h"
+
+#ifdef ESP32
+#include <SPIFFS.h>
+#else
+#include <FS.h>
+#endif
 
 ESPEasyCfgParameterManagerJSON::ESPEasyCfgParameterManagerJSON() : ESPEasyCfgParameterManager()
 {    
