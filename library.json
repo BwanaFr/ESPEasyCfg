@@ -22,10 +22,10 @@
   "platforms": ["espressif8266", "espressif32"],
   "dependencies": [
     {
-      "name": "ESP Async WebServer",
+      "name": "ESP Async WebServer"
     },
     {
-      "name": "ArduinoJson",
+      "name": "ArduinoJson"
     }
   ]
 }
