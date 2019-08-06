@@ -1,5 +1,5 @@
 #include "ESPEasyCfgParameter.h"
-#include <SPIFFS.h>
+#include <FS.h>
 
 template<>
 inline ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(const char* id, const char* name,

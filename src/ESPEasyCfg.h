@@ -5,7 +5,6 @@
 #include <ArduinoJson.hpp>
 #include <AsyncJson.h>
 #include "ESPEasyCfgParameter.h"
-#include "ESPEasyCfgTicker.h"
 #include <DNSServer.h>
 
 
@@ -74,10 +73,17 @@ class ESPEasyCfg
         void switchToSTA();
         
     public:
+#ifdef ESP32
         /**
          * Monitor state
          */
         void monitorState();
+#elif defined(ESP8266)
+		/**
+		 * Performs background tasks
+		 */
+		void loop();
+#endif
         /**
          * Constructor
          * @param webServer Webserver instance

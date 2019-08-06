@@ -1,5 +1,5 @@
 #include "ESPEasyCfgParameterManagerJSON.h"
-#include <SPIFFS.h>
+#include <FS.h>
 #include <ArduinoJson.h>
 #include "ESPEasyCfgConfiguration.h"
 

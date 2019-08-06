@@ -2,9 +2,16 @@
 #include <AsyncJson.h>
 #include <ArduinoJson.hpp>
 #include <FS.h>
-#include <SPIFFS.h>
-#include <Wifi.h>
+
+#ifdef ESP32
+#include <WiFi.h>
 #include <esp_task_wdt.h>
+#elif defined(ESP8266)
+#include <ESP8266WiFi.h>
+#define WIFI_AUTH_OPEN ENC_TYPE_NONE
+#else
+#error Platform not supported
+#endif
 
 #include "ESPEasyCfgParameterManagerJSON.h"
 #include "ESPEasyCfgConfiguration.h"
@@ -12,15 +19,17 @@
 #define CFG_VERSION "1.0.0"
 #define UNUSED_PIN 0xFF
 
+#ifdef ESP32
 void ESPEasyCfgMonitorTask(void* instance)
 {
     ESPEasyCfg* obj = reinterpret_cast<ESPEasyCfg*>(instance);
     obj->monitorState();
     vTaskDelete( NULL );
 }
+#endif
 
 ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer) :
-    _webServer(webServer), 
+    _webServer(webServer),
     _iotName("_iotName", "Thing name", "MyThing", "Name of this thing"),
     _iotPass("_iotPass", "IoT password", "", "Configuration password"),
     _wifiSSID("_wifiSSID", "WiFi SSID", "", "Name of the WiFi network"),
@@ -59,7 +68,7 @@ void ESPEasyCfg::toJSON(ArduinoJson::JsonArray& arr, ESPEasyCfgParameterGroup* f
     while(param != nullptr)
     {
         JsonObject& obj1 = paramArr.createNestedObject();
-        param->toJSON(obj1);        
+        param->toJSON(obj1);
         const char* type = param->getInputType();
         if(type != nullptr){ obj1["type"] = type;}
         param = param->getNextParameter();
@@ -103,7 +112,7 @@ void ESPEasyCfg::begin()
                 }else{
                     msg +=  "Trying to connect to ";
                     msg += newValue;
-                }                
+                }
             }
             _state = State::WillConnect;
         }
@@ -125,15 +134,13 @@ void ESPEasyCfg::begin()
                 .setCacheControl("public, max-age=31536000").setLastModified("Mon, 04 Mar 2019 07:00:00 GMT");
     //Configuration webpage, we must keep the handler reference to enable/disable authentication
     AsyncStaticWebHandler &fileHandler = _webServer->serveStatic("/ESPEasyCfg/config.html", SPIFFS, "/ESPEasyCfg/config.html")
-                .setCacheControl("public, max-age=31536000").setLastModified("Mon, 04 Mar 2019 07:00:00 GMT");    
+                .setCacheControl("public, max-age=31536000").setLastModified("Mon, 04 Mar 2019 07:00:00 GMT");
     _fileHandler = &fileHandler;
     //Root handling
     _webServer->on("/", HTTP_GET, [=](AsyncWebServerRequest *request){
         if(_state == State::AP){
             //In AP mode, we must serve the first page
-#ifdef ESPEasyCfg_SERIAL_DEBUG
-            Serial.println("Captive portal redirected");
-#endif
+            DebugPrintln("Captive portal redirected");
             request->send(200, "text/html", F("<!DOCTYPE html><html><body><script>location.replace(\"/ESPEasyCfg/config.html\");</script></body></html>"));
         }else{
             if(!_rootHandler){
@@ -207,37 +214,32 @@ void ESPEasyCfg::begin()
             network["open"] = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
             network["channel"] = WiFi.channel(i);
         }
+		WiFi.scanDelete();
         response->setLength();
         request->send(response);
     });
     _webServer->onNotFound([=](AsyncWebServerRequest * request){
         if(_state == State::AP){
-#ifdef ESPEasyCfg_SERIAL_DEBUG            
-            Serial.print("Requested :" );
-            Serial.println(request->host());
-#endif
+            DebugPrint("Requested :" );
+            DebugPrintln(request->host());
             if(!request->host().startsWith(_iotName.getValue())){
                 String loc = "http://";
                 loc += _iotName.getValue();
                 request->redirect(loc);
-#ifdef ESPEasyCfg_SERIAL_DEBUG
-                Serial.print("Redirected to :" );
-                Serial.println(loc);
-#endif                
+                DebugPrint("Redirected to :" );
+                DebugPrintln(loc);
             }else{
                 request->send(404, "text/plain", "Not found");
-            }         
+            }
         }else{
-#ifdef ESPEasyCfg_SERIAL_DEBUG          
-            Serial.print("Send 404 error on ");
-            Serial.println(request->url());
-#endif
+            DebugPrint("Send 404 error on ");
+            DebugPrintln(request->url());
             if(_notFoundHandler){
                 _notFoundHandler(request);
             }else{
                 request->send(404, "text/plain", "Not found");
-            }            
-        }        
+            }
+        }
     });
 
     //Connect to WiFi
@@ -247,7 +249,8 @@ void ESPEasyCfg::begin()
     }else{
         //Not configured, switch to AP mode
         switchToAP();
-    }    
+    }
+#ifdef ESP32
     //Monitor the connection state using a dedicated FreeRTOS task
     xTaskCreate(ESPEasyCfgMonitorTask,   /* Task function. */
                     "ConMonitor",        /* String with name of task. */
@@ -255,7 +258,7 @@ void ESPEasyCfg::begin()
                     this,                /* Parameter passed as input of the task */
                     1,                   /* Priority of the task. */
                     NULL);               /* Task handle. */
-   
+#endif
 
 }
 
@@ -282,7 +285,7 @@ void ESPEasyCfg::stopDNS()
         _dnsServer->stop();
         delete _dnsServer;
         _dnsServer = nullptr;
-    }    
+    }
 }
 
 void ESPEasyCfg::setParameterManager(ESPEasyCfgParameterManager* manager)
@@ -295,9 +298,7 @@ void ESPEasyCfg::setParameterManager(ESPEasyCfgParameterManager* manager)
  */
 void ESPEasyCfg::switchToAP()
 {
-#ifdef ESPEasyCfg_SERIAL_DEBUG
-    Serial.println("Switching to AP mode");
-#endif
+    DebugPrintln("Switching to AP mode");
     WiFi.mode(WIFI_AP);
     if(_iotPass.getValue().length()>0){
         //Enable authentication on AP if a password is set
@@ -308,20 +309,16 @@ void ESPEasyCfg::switchToAP()
     }
     _fileHandler->setAuthentication("", "");
     delay(100);
-#ifdef ESPEasyCfg_SERIAL_DEBUG
-    Serial.print("AP IP ");
-    Serial.println(WiFi.softAPIP());
-#endif
+    DebugPrint("AP IP ");
+    DebugPrintln(WiFi.softAPIP());
     _state = State::AP;
 }
 
 void ESPEasyCfg::switchToSTA()
 {
     stopDNS();
-#ifdef ESPEasyCfg_SERIAL_DEBUG    
-    Serial.print("Trying to connect to ");
-    Serial.println(_wifiSSID.getValue());
-#endif
+    DebugPrint("Trying to connect to ");
+    DebugPrintln(_wifiSSID.getValue());
     WiFi.mode(WIFI_STA);
     if(_wifiPass.getValue().length()>0){
         WiFi.begin(_wifiSSID.getValue().c_str(), _wifiPass.getValue().c_str());
@@ -331,57 +328,54 @@ void ESPEasyCfg::switchToSTA()
     _state = State::Connecting;
 }
 
-/**
- * Monitor state
- */
+#ifdef ESP32
 void ESPEasyCfg::monitorState()
+#else
+void ESPEasyCfg::loop()
+#endif	
 {
-    unsigned long connectStart = 0;
-    unsigned long lastLedChange = 0;
+    static unsigned long connectStart = 0;
+    static unsigned long lastLedChange = 0;
     unsigned long ledTimeOn = 500;
     unsigned long ledTimeOff = 500;
-#ifdef ESPEasyCfg_SERIAL_DEBUG    
-    unsigned long lastPrint = 0;
+#ifdef ESPEasyCfg_SERIAL_DEBUG
+    static unsigned long lastPrint = 0;
 #endif
-    bool ledState = false;
+    static bool ledState = false;
+#ifdef ESP32
     while(true){
         esp_task_wdt_reset();
+#endif		
         unsigned long now = millis();
         switch(_state){
             case State::Connecting:
-            {   
+            {
                 ledTimeOn = 50;
                 ledTimeOff = 50;
                 if(WiFi.status() == WL_CONNECTED){
                     _state = State::Connected;
                     //Set authentication for files
-                    if(_iotPass.getValue().length()>0){                        
+                    if(_iotPass.getValue().length()>0){
                         _fileHandler->setAuthentication("admin", _iotPass.getValue().c_str());
                     }else{
                         _fileHandler->setAuthentication("", "");
-                    }                    
-#ifdef ESPEasyCfg_SERIAL_DEBUG
-                    Serial.print("\nConnected, IP is ");
-                    Serial.println(WiFi.localIP());       
-#endif             
+                    }
+                    DebugPrint("\nConnected, IP is ");
+                    DebugPrintln(WiFi.localIP());
                 }else if((now-connectStart)>60000){
-#ifdef ESPEasyCfg_SERIAL_DEBUG
-                    Serial.println();
-                    Serial.print("Connection timeout ");
-#endif
+                    DebugPrintln();
+                    DebugPrint("Connection timeout ");
                     switchToAP();
-#ifdef ESPEasyCfg_SERIAL_DEBUG                    
+#ifdef ESPEasyCfg_SERIAL_DEBUG
                 }else if((now-lastPrint)>1000){
                     lastPrint = now;
-                    Serial.print('.');
+                    DebugPrint('.');
 #endif
                 }else{
                     if(_switchPin != UNUSED_PIN){
                         if(digitalRead(_switchPin) == LOW){
-                        //Switch pressed.
-#ifdef ESPEasyCfg_SERIAL_DEBUG
-                            Serial.println("Reseting password");
-#endif                            
+							//Switch pressed.
+							DebugPrintln("Reseting password");
                             _iotPass.setValue("");
                             switchToAP();
                         }
@@ -395,12 +389,14 @@ void ESPEasyCfg::monitorState()
                 ledTimeOff = 500;
                 if(_wifiSSID.getValue().length()>0){
                     connectStart = now;
+#ifdef ESP32					
                     //Wait to have time to send response
-                    delay(1000);        
-                    switchToSTA();        
+                    delay(100);
+#endif					
+                    switchToSTA();
                 }else{
                     switchToAP();
-                }                
+                }
                 break;
             }
             case State::AP:
@@ -417,9 +413,8 @@ void ESPEasyCfg::monitorState()
             default:
                 break;
         }
-        yield();
         //Led blinker
-        if(_ledPin != UNUSED_PIN){        
+        if(_ledPin != UNUSED_PIN){
             if(ledState){
                 if((now-lastLedChange)>ledTimeOn){
                     digitalWrite(_ledPin, LOW);
@@ -434,7 +429,9 @@ void ESPEasyCfg::monitorState()
                 }
             }
         }
+#ifdef ESP32		
     }
+#endif
 }
 
 void ESPEasyCfg::setRootHandler(ArRequestHandlerFunction func)
