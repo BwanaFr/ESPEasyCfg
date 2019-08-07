@@ -49,6 +49,12 @@ ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer) :
     _iotName.setExtraAttributes("{\"required\":\"\"}");
 }
 
+ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer, const char* thingName) : 
+    ESPEasyCfg(webServer)
+{
+    _iotName.setValue(thingName);
+}
+
 ESPEasyCfg::~ESPEasyCfg()
 {
     delete _cfgHandler;
@@ -223,9 +229,10 @@ void ESPEasyCfg::begin()
         if(_state == State::AP){
             DebugPrint("Requested :" );
             DebugPrintln(request->host());
-            if(!request->host().startsWith(_iotName.getValue())){
+            if(!request->host().startsWith(_iotName.getValue()) ||
+                !request->host().startsWith(WiFi.softAPIP().toString())){
                 String loc = "http://";
-                loc += _iotName.getValue();
+                loc += WiFi.softAPIP().toString();
                 request->redirect(loc);
                 DebugPrint("Redirected to :" );
                 DebugPrintln(loc);

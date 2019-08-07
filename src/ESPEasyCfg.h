@@ -90,6 +90,12 @@ class ESPEasyCfg
          */
         ESPEasyCfg(AsyncWebServer *webServer);
         /**
+         * Constructor
+         * @param webServer Webserver instance
+         * @param thingName Name of the thing (AP name)
+         */
+        ESPEasyCfg(AsyncWebServer *webServer, const char* thingName);
+        /**
          * Destructor
          */
         virtual ~ESPEasyCfg();
