@@ -16,7 +16,7 @@ public:
     bool saveParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version);
     bool loadParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version);
 private:
-    JsonObject* locateByID(JsonArray& arr, const char* id);
+    JsonVariant locateByID(JsonArray& arr, const char* id);
 };
 
 #endif

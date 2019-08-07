@@ -24,22 +24,21 @@ void ESPEasyCfgParameterManagerJSON::init(ESPEasyCfgParameterGroup* firstGroup)
 
 bool ESPEasyCfgParameterManagerJSON::saveParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version)
 {
-    StaticJsonBuffer<JSON_BUFFER_SIZE> jb;
-    JsonObject& root = jb.createObject();
+    StaticJsonDocument<JSON_BUFFER_SIZE> root;
     root["version"] = version;
-    JsonArray& arr = root.createNestedArray("parameters");
+    JsonArray arr = root.createNestedArray("parameters");
     ESPEasyCfgParameterGroup* grp = firstGroup;
     while(grp){
         ESPEasyCfgAbstractParameter* param = grp->getFirst();
         while(param){
-            JsonObject& p = arr.createNestedObject();
+            JsonObject p = arr.createNestedObject();
             param->toJSON(p, true);
             param = param->getNextParameter();
         }
         grp = grp->getNext();
     }
     File paramFile = SPIFFS.open(PARAMETER_JSON_FILE, "w");
-    root.printTo(paramFile);
+    serializeJson(root, paramFile);
     paramFile.close();
     return true;
 }
@@ -49,24 +48,21 @@ bool ESPEasyCfgParameterManagerJSON::loadParameters(ESPEasyCfgParameterGroup* fi
     bool ret = false;
     File configFile = SPIFFS.open(PARAMETER_JSON_FILE, "r");
     if(configFile){
-        std::unique_ptr<char[]> buf(new char[configFile.size()]);
-        if ( configFile.readBytes(buf.get(), configFile.size()) == configFile.size() ) {
-        DynamicJsonBuffer jsonBuffer;
-        JsonObject& json = jsonBuffer.parseObject(buf.get());
-            if (json.success()) {
+        DynamicJsonDocument json(JSON_BUFFER_SIZE);
+        if(deserializeJson(json, configFile) == DeserializationError::Ok) {
                 const char* fVersion = json["version"];
                 if(strcmp(fVersion, version) == 0){
-                    JsonArray& arr = json["parameters"];
+                    JsonArray arr = json["parameters"];
                     // All is fine
                     ESPEasyCfgParameterGroup* grp = firstGroup;
                     while(grp){
                         ESPEasyCfgAbstractParameter* param = grp->getFirst();
                         while(param){
-                            JsonObject* ob = locateByID(arr, param->getIdentifier());
-                            if(ob){
+                            JsonVariant ob = locateByID(arr, param->getIdentifier());
+                            if(!ob.isNull()){
                                 String s;
                                 int8_t action;
-                                param->setValue((*ob)["value"], s, action);
+                                param->setValue(ob["value"], s, action);
                             }
 #ifdef ESPEasyCfg_SERIAL_DEBUG
                             Serial.print("Loading ");
@@ -88,28 +84,24 @@ bool ESPEasyCfgParameterManagerJSON::loadParameters(ESPEasyCfgParameterGroup* fi
 #endif                    
                     ret = false; 
                 }
-            } else {
-                ret = false;
-            }
         } else {
             ret = false;
         }
-
         if (configFile) {
-        configFile.close();
+            configFile.close();
         }
     }
     return ret;
 }
 
-JsonObject* ESPEasyCfgParameterManagerJSON::locateByID(JsonArray& arr, const char* id)
+JsonVariant ESPEasyCfgParameterManagerJSON::locateByID(JsonArray& arr, const char* id)
 {
 
-    for(JsonObject& elem: arr) {
+    for(JsonVariant elem: arr) {
         const char* vId = elem["id"];
         if(vId && (strcmp(vId, id) == 0)){
-            return &elem;
+            return elem;
         }
     }
-    return nullptr;
+    return JsonVariant();
 }

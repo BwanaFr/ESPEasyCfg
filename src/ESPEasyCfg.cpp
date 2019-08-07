@@ -66,15 +66,15 @@ void ESPEasyCfg::toJSON(ArduinoJson::JsonArray& arr, ESPEasyCfgParameterGroup* f
 {
     ESPEasyCfgAbstractParameter* param = first->getFirst();
     //Create an entry in the array
-    JsonObject& paramCol = arr.createNestedObject();
+    JsonObject paramCol = arr.createNestedObject();
     //Put name of the parameter group
     paramCol["name"] = first->getName();
     //Create array of parameters
-    JsonArray& paramArr = paramCol.createNestedArray("parameters");
+    JsonArray paramArr = paramCol.createNestedArray("parameters");
     //Create JSON entry for each parameter in the group
     while(param != nullptr)
     {
-        JsonObject& obj1 = paramArr.createNestedObject();
+        JsonObject obj1 = paramArr.createNestedObject();
         param->toJSON(obj1);
         const char* type = param->getInputType();
         if(type != nullptr){ obj1["type"] = type;}
@@ -94,7 +94,7 @@ void ESPEasyCfg::fromJSON(ArduinoJson::JsonObject& json, ESPEasyCfgParameterGrou
     while(param != nullptr)
     {
         if(json.containsKey(param->getIdentifier())){
-            const char* val = json.get<const char*>(param->getIdentifier());
+            const char* val = json[param->getIdentifier()];
             param->setValue(val, msg, action, true);
         }
         param = param->getNextParameter();
@@ -169,7 +169,7 @@ void ESPEasyCfg::begin()
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
         JsonObject& root = (JsonObject&)response->getRoot();
-        JsonArray& arr = root.createNestedArray("groups");
+        JsonArray arr = root.createNestedArray("groups");
         toJSON(arr, &_paramGrp);
         response->setLength();
         request->send(response);
@@ -179,7 +179,7 @@ void ESPEasyCfg::begin()
     _cfgHandler = new AsyncCallbackJsonWebHandler("/configPost", [=](AsyncWebServerRequest *request, JsonVariant &json){
         if((_state != State::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
-        JsonObject& jsonObj = json.as<JsonObject>();
+        JsonObject jsonObj = json.as<JsonObject>();
         String str;
         int8_t action;
         fromJSON(jsonObj, &_paramGrp, str, action);
@@ -188,7 +188,7 @@ void ESPEasyCfg::begin()
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
         JsonObject& root = (JsonObject&)response->getRoot();
-        JsonArray& arr = root.createNestedArray("groups");
+        JsonArray arr = root.createNestedArray("groups");
         toJSON(arr, &_paramGrp);
         if(str.length()>0){
             root["message"] = str;
@@ -213,9 +213,9 @@ void ESPEasyCfg::begin()
         response->addHeader("Access-Control-Allow-Origin", "*");
         response->addHeader("Cache-Control", "max-age=10");
         JsonObject& root = (JsonObject&)response->getRoot();
-        JsonArray& arr = root.createNestedArray("networks");
+        JsonArray arr = root.createNestedArray("networks");
         for (int i = 0; i < n; ++i) {
-            JsonObject& network = arr.createNestedObject();
+            JsonObject network = arr.createNestedObject();
             network["SSID"] = WiFi.SSID(i);
             network["RSSI"] = WiFi.RSSI(i);
             network["open"] = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
