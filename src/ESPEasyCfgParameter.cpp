@@ -2,7 +2,7 @@
 #include <FS.h>
 
 template<>
-inline ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(const char* id, const char* name,
+ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(const char* id, const char* name,
      char* defaultValue, const char* description, const char* extraAttributes) : 
     ESPEasyCfgAbstractParameter(id, name, description, extraAttributes)
 {
@@ -12,13 +12,13 @@ inline ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(const char* id, const cha
 }
 
 template<>
-inline ESPEasyCfgParameter<char*>::~ESPEasyCfgParameter()
+ESPEasyCfgParameter<char*>::~ESPEasyCfgParameter()
 {
     delete _value;
 }
 
 template<>
-inline void ESPEasyCfgParameter<char*>::setValue(char* value)
+void ESPEasyCfgParameter<char*>::setValue(char* value)
 {
     strncpy(_value, value, MAX_STRING_SIZE-1);
     _value[MAX_STRING_SIZE-1] = '\0';
@@ -252,7 +252,6 @@ template<> bool ESPEasyCfgParameter<uint16_t>::setValue(const char* value, Strin
     _value = newValue;
     return true;
 }
-
 
 ESPEasyCfgParameterGroup::ESPEasyCfgParameterGroup(const char* name) : 
     _name(name), _first(nullptr), _next(nullptr)

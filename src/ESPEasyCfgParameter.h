@@ -264,11 +264,12 @@ bool ESPEasyCfgParameter<T>::setValue(const char* value, String& msg, int8_t& ac
  * Specialized functions
  */
 
-template<> inline ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(const char* id, const char* name, 
+template<> ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(const char* id, const char* name, 
                                                     char* defaultValue, const char* description, const char* extraAttributes); 
-template<> inline ESPEasyCfgParameter<char*>::~ESPEasyCfgParameter();
 
-template<> inline void ESPEasyCfgParameter<char*>::setValue(char* value);
+template<> ESPEasyCfgParameter<char*>::~ESPEasyCfgParameter();
+
+template<> void ESPEasyCfgParameter<char*>::setValue(char* value);
 
 template<> size_t ESPEasyCfgParameter<char*>::getStorageSize();
 template<> size_t ESPEasyCfgParameter<String>::getStorageSize();
