@@ -336,7 +336,7 @@ void ESPEasyCfg::switchToSTA()
         WiFi.begin(_wifiSSID.getValue().c_str(), _wifiPass.getValue().c_str());
     }else{
         WiFi.begin(_wifiSSID.getValue().c_str());
-    }
+    }    
     setState(ESPEasyCfgState::Connecting);
 }
 
