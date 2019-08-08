@@ -7,6 +7,9 @@
 
 #define MAX_STRING_SIZE 64
 
+
+class ESPEasyCfgParameterGroup;
+
 /**
  * A generic parameter interface
  */ 
@@ -18,6 +21,7 @@ private:
     const char* _description;
     const char* _extraAttributes;
     ESPEasyCfgAbstractParameter* _nextParam;
+    friend class ESPEasyCfgParameterGroup;
 
 public:
     /**
@@ -28,21 +32,25 @@ public:
             const char* description = nullptr,
             const char* extraAttributes = nullptr) : 
             _id(id), _name(name), _description(description), _extraAttributes(extraAttributes), _nextParam(nullptr){}
+
     /**
      * Return a string representation of the parameter
      */
     virtual String toString() = 0;
+
     /**
      * Get the number of bytes occupied in storage
      */
     virtual size_t getStorageSize() = 0;
+
     /**
      * Store the parameter into the specified buffer
      * @buffer pointer to buffer 
      * @bufferLen Buffer size
      * @return True if success (buffer size ok)
      */
-    virtual bool storeTo(void* buffer, size_t bufferLen) = 0;    
+    virtual bool storeTo(void* buffer, size_t bufferLen) = 0;
+
     /**
      * Load the parameter from the specified buffer
      * @buffer Buffer to load data to
@@ -50,16 +58,12 @@ public:
      * @return True if success (buffer size ok)
      */
     virtual bool loadFrom(const void* buffer, size_t bufferLen) = 0;
+
     /**
      * Gets the next parameter, used for chained list
      * @return Pointer to next parameter of nullptr if this is the last
      */
     inline ESPEasyCfgAbstractParameter* getNextParameter() { return _nextParam; }
-    /**
-     * Set the next parameter of this
-     * @next Next parameter to be associated
-     */
-    inline void setNextParameter(ESPEasyCfgAbstractParameter* next){ _nextParam = next; }
 
     /**
      * Get parameter identifier
@@ -307,12 +311,12 @@ private:
     ESPEasyCfgAbstractParameter *_first;
     ESPEasyCfgParameterGroup *_next;
 public:
-    ESPEasyCfgParameterGroup(const char* name, ESPEasyCfgAbstractParameter* first);
+    ESPEasyCfgParameterGroup(const char* name);
     virtual ~ESPEasyCfgParameterGroup();
     const char* getName() const;
     ESPEasyCfgAbstractParameter* getFirst();
-    void setFirst(ESPEasyCfgAbstractParameter* first);
-    void setNext(ESPEasyCfgParameterGroup* next);
+    void add(ESPEasyCfgAbstractParameter* param);
+    void add(ESPEasyCfgParameterGroup* paramGrp);
     ESPEasyCfgParameterGroup* getNext();
 };
 

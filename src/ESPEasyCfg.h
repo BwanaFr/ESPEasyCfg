@@ -10,17 +10,20 @@
 
 void ESPEasyCfgMonitorTask(void* instance);
 
+/**
+ * Application state
+ * @Connecting Trying to connect to WiFi
+ * @AP Access point mode (captive portal)
+ * @Connected WiFi is connected (normal mode)
+ * @WillConnect Connection will be established
+ * @Reconfigured Application is reconfigured via web interface
+ */
+enum class ESPEasyCfgState {Connecting, AP, Connected, WillConnect, Reconfigured};
+
+typedef std::function<void(ESPEasyCfgState)> StateHandlerFunction;
+
 class ESPEasyCfg
 {
-    public:
-        /**
-         * Application state
-         * @Connecting Trying to connect to WiFi
-         * @AP Access point mode (captive portal)
-         * @Connected WiFi is connected (normal mode)
-         * @WillConnect Connection will be established
-         */
-        enum class State {Connecting, AP, Connected, WillConnect};
     private:    
         AsyncWebServer *_webServer;                 //!< Reference to the webserver
         ESPEasyCfgParameter<String> _iotName;       //!< Name of this thing (parameter)
@@ -28,7 +31,7 @@ class ESPEasyCfg
         ESPEasyCfgParameter<String> _wifiSSID;      //!< SSID of the WiFi network to connect to
         ESPEasyCfgParameter<String> _wifiPass;      //!< Password of WiFi to connect to (blank : open)
         ESPEasyCfgParameterGroup _paramGrp;         //!< Group for holding build-in parameters
-        State _state;                               //!< State of this application
+        ESPEasyCfgState _state;                     //!< State of this application
         AsyncCallbackJsonWebHandler* _cfgHandler;   //!< Web handler to handle set of parameter
         AsyncStaticWebHandler* _fileHandler;        //!< Web handler for static files stored in SPIFFS on /wwww/
         DNSServer* _dnsServer;                      //!< DNS server to handle captive portal redirections
@@ -38,6 +41,8 @@ class ESPEasyCfg
         uint8_t _switchPin;                         //!< Switch pin to reset password
         ArRequestHandlerFunction _rootHandler;      //!< Root handler (if installed)
         ArRequestHandlerFunction _notFoundHandler;  //!< 404 error handler
+        StateHandlerFunction _stateHandler;         //!< Custom handler for monitoring state
+
         /**
          * Serialize parameters to JSON
          * @param arr JSON array to put parameters to
@@ -71,6 +76,11 @@ class ESPEasyCfg
          * Switch to station
          */
         void switchToSTA();
+        
+        /**
+         * Change the state
+         */
+        void setState(ESPEasyCfgState newState);
         
     public:
 #ifdef ESP32
@@ -106,7 +116,7 @@ class ESPEasyCfg
         /**
          * Get application state
          */
-        State getState();
+        ESPEasyCfgState getState();
         /**
          * Associate a parameter manager to this
          * This method must be called before begin()!
@@ -137,6 +147,20 @@ class ESPEasyCfg
          * @param pin Pin number (active low)
          */
         void setSwitchPin(int8_t pin);
+
+        /**
+         * Adds a parameter group to be managed by the captive portal
+         * This method must be called before begin!
+         * @param grp Parameter group to be added on configuration page
+         */
+        void addParameterGroup(ESPEasyCfgParameterGroup* grp);
+
+        /**
+         * Sets a state handler callback to be called when portal state
+         * changes
+         * @handler Handler function to be called
+         */
+        void setStateHandler(StateHandlerFunction handler);
 };
 
 

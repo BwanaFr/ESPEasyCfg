@@ -254,8 +254,8 @@ template<> bool ESPEasyCfgParameter<uint16_t>::setValue(const char* value, Strin
 }
 
 
-ESPEasyCfgParameterGroup::ESPEasyCfgParameterGroup(const char* name, ESPEasyCfgAbstractParameter* first) : 
-    _name(name), _first(first), _next(nullptr)
+ESPEasyCfgParameterGroup::ESPEasyCfgParameterGroup(const char* name) : 
+    _name(name), _first(nullptr), _next(nullptr)
 {
 
 }
@@ -274,14 +274,22 @@ ESPEasyCfgAbstractParameter* ESPEasyCfgParameterGroup::getFirst()
     return _first;
 }
 
-void ESPEasyCfgParameterGroup::setFirst(ESPEasyCfgAbstractParameter* first)
+void ESPEasyCfgParameterGroup::add(ESPEasyCfgAbstractParameter* param)
 {
-    _first = first;
+    ESPEasyCfgAbstractParameter** par = &_first;
+    while(*par){
+        par = &(*par)->_nextParam;
+    }
+    *par = param;
 }
 
-void ESPEasyCfgParameterGroup::setNext(ESPEasyCfgParameterGroup* next)
+void ESPEasyCfgParameterGroup::add(ESPEasyCfgParameterGroup* paramGrp)
 {
-    _next = next;
+    ESPEasyCfgParameterGroup** grp = &_next;
+    while(*grp){
+        grp = &(*grp)->_next;
+    }
+    *grp = paramGrp;
 }
 
 ESPEasyCfgParameterGroup* ESPEasyCfgParameterGroup::getNext()

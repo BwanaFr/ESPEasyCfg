@@ -35,14 +35,15 @@ ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer) :
     _iotPass("_iotPass", "IoT password", "", "Configuration password"),
     _wifiSSID("_wifiSSID", "WiFi SSID", "", "Name of the WiFi network"),
     _wifiPass("_wifiPass", "WiFi password", "", "Password of WiFi network"),
-    _paramGrp("Global settings", &_iotName), _state(State::WillConnect),
+    _paramGrp("Global settings"), _state(ESPEasyCfgState::WillConnect),
      _cfgHandler(nullptr), _dnsServer(nullptr), _paramManager(nullptr),
      _lastCon(0), _ledPin(UNUSED_PIN), _switchPin(UNUSED_PIN)
 {
-    //Chain built-in parameters
-    _iotName.setNextParameter(&_iotPass);
-    _iotPass.setNextParameter(&_wifiSSID);
-    _wifiSSID.setNextParameter(&_wifiPass);
+    //Add built-in parameters to the group
+    _paramGrp.add(&_iotName);
+    _paramGrp.add(&_iotPass);
+    _paramGrp.add(&_wifiSSID);
+    _paramGrp.add(&_wifiPass);
     _iotPass.setInputType("password");
     _wifiPass.setInputType("password");
     _wifiSSID.setInputType("ssid");
@@ -110,10 +111,10 @@ void ESPEasyCfg::begin()
 {
     //Register parameter callback to validate/act when needed
     _wifiSSID.setValidator([=](ESPEasyCfgParameter<String> *param, String newValue, String &msg, int8_t& action) -> bool{
-        if((newValue != param->getValue()) || (_state == State::AP))
+        if((newValue != param->getValue()) || (_state == ESPEasyCfgState::AP))
         {
             if(newValue.length()>0){
-                if(_state != State::Connected){
+                if(_state != ESPEasyCfgState::Connected){
                     msg +=  "You will be disconnected from AP.";
                     action |= ESPEasyCfgAbstractParameter::CLOSE;
                 }else{
@@ -121,7 +122,7 @@ void ESPEasyCfg::begin()
                     msg += newValue;
                 }
             }
-            _state = State::WillConnect;
+            setState(ESPEasyCfgState::WillConnect);
         }
         return false;
     });
@@ -145,7 +146,7 @@ void ESPEasyCfg::begin()
     _fileHandler = &fileHandler;
     //Root handling
     _webServer->on("/", HTTP_GET, [=](AsyncWebServerRequest *request){
-        if(_state == State::AP){
+        if(_state == ESPEasyCfgState::AP){
             //In AP mode, we must serve the first page
             DebugPrintln("Captive portal redirected");
             request->send(200, "text/html", F("<!DOCTYPE html><html><body><script>location.replace(\"/ESPEasyCfg/config.html\");</script></body></html>"));
@@ -163,7 +164,7 @@ void ESPEasyCfg::begin()
 
     //Gets the device configuration as JSON document
     _webServer->on("/config", HTTP_GET, [=](AsyncWebServerRequest *request){
-        if((_state != State::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
+        if((_state != ESPEasyCfgState::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
         AsyncJsonResponse * response = new AsyncJsonResponse();
         response->addHeader("Server","ESP Async Web Server");
@@ -177,7 +178,7 @@ void ESPEasyCfg::begin()
 
     //Handler to receive new configuration
     _cfgHandler = new AsyncCallbackJsonWebHandler("/configPost", [=](AsyncWebServerRequest *request, JsonVariant &json){
-        if((_state != State::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
+        if((_state != ESPEasyCfgState::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
         JsonObject jsonObj = json.as<JsonObject>();
         String str;
@@ -199,13 +200,16 @@ void ESPEasyCfg::begin()
         response->setLength();
         request->send(response);
         _paramManager->saveParameters(&_paramGrp, CFG_VERSION);
+        if(_stateHandler){
+            _stateHandler(ESPEasyCfgState::Reconfigured);
+        }
     });
     _webServer->addHandler(_cfgHandler);
 
 
     //Handler to scan networks
     _webServer->on("/scan", HTTP_GET, [=](AsyncWebServerRequest *request){
-        if((_state != State::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
+        if((_state != ESPEasyCfgState::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
         int n = WiFi.scanNetworks();
         AsyncJsonResponse * response = new AsyncJsonResponse();
@@ -226,7 +230,7 @@ void ESPEasyCfg::begin()
         request->send(response);
     });
     _webServer->onNotFound([=](AsyncWebServerRequest * request){
-        if(_state == State::AP){
+        if(_state == ESPEasyCfgState::AP){
             DebugPrint("Requested :" );
             DebugPrintln(request->host());
             if(!request->host().startsWith(_iotName.getValue()) ||
@@ -270,7 +274,7 @@ void ESPEasyCfg::begin()
 
 }
 
-ESPEasyCfg::State ESPEasyCfg::getState()
+ESPEasyCfgState ESPEasyCfg::getState()
 {
     return _state;
 }
@@ -319,7 +323,7 @@ void ESPEasyCfg::switchToAP()
     delay(100);
     DebugPrint("AP IP ");
     DebugPrintln(WiFi.softAPIP());
-    _state = State::AP;
+    setState(ESPEasyCfgState::AP);
 }
 
 void ESPEasyCfg::switchToSTA()
@@ -333,7 +337,7 @@ void ESPEasyCfg::switchToSTA()
     }else{
         WiFi.begin(_wifiSSID.getValue().c_str());
     }
-    _state = State::Connecting;
+    setState(ESPEasyCfgState::Connecting);
 }
 
 #ifdef ESP32
@@ -356,12 +360,11 @@ void ESPEasyCfg::loop()
 #endif		
         unsigned long now = millis();
         switch(_state){
-            case State::Connecting:
+            case ESPEasyCfgState::Connecting:
             {
                 ledTimeOn = 50;
                 ledTimeOff = 50;
                 if(WiFi.status() == WL_CONNECTED){
-                    _state = State::Connected;
                     //Set authentication for files
                     if(_iotPass.getValue().length()>0){
                         _fileHandler->setAuthentication("admin", _iotPass.getValue().c_str());
@@ -370,6 +373,7 @@ void ESPEasyCfg::loop()
                     }
                     DebugPrint("\nConnected, IP is ");
                     DebugPrintln(WiFi.localIP());
+                    setState(ESPEasyCfgState::Connected);
                 }else if((now-connectStart)>60000){
                     DebugPrintln();
                     DebugPrint("Connection timeout ");
@@ -391,7 +395,7 @@ void ESPEasyCfg::loop()
                 }
                 break;
             }
-            case State::WillConnect:
+            case ESPEasyCfgState::WillConnect:
             {
                 ledTimeOn = 500;
                 ledTimeOff = 500;
@@ -407,14 +411,14 @@ void ESPEasyCfg::loop()
                 }
                 break;
             }
-            case State::AP:
+            case ESPEasyCfgState::AP:
             {
                 ledTimeOn = 100;
                 ledTimeOff = 100;
                 runDNS();
                 break;
             }
-            case State::Connected:
+            case ESPEasyCfgState::Connected:
                 ledTimeOn = 50;
                 ledTimeOff = 5000;
                 break;
@@ -460,4 +464,24 @@ void ESPEasyCfg::setLedPin(int8_t pin)
 void ESPEasyCfg::setSwitchPin(int8_t pin)
 {
     _switchPin = pin;
+}
+
+void ESPEasyCfg::addParameterGroup(ESPEasyCfgParameterGroup* grp)
+{
+    _paramGrp.add(grp);
+}
+
+void ESPEasyCfg::setStateHandler(StateHandlerFunction handler)
+{
+    _stateHandler = handler;
+}
+
+void ESPEasyCfg::setState(ESPEasyCfgState newState)
+{
+    if(newState  != _state){
+        _state = newState;
+        if(_stateHandler){
+            _stateHandler(_state);
+        }
+    }
 }

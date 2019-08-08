@@ -60,28 +60,28 @@ bool ESPEasyCfgParameterManagerJSON::loadParameters(ESPEasyCfgParameterGroup* fi
                         while(param){
                             JsonVariant ob = locateByID(arr, param->getIdentifier());
                             if(!ob.isNull()){
+                                DebugPrint("Loading ");
+                                DebugPrint(param->getIdentifier());
                                 String s;
                                 int8_t action;
-                                param->setValue(ob["value"], s, action);
-                            }
-#ifdef ESPEasyCfg_SERIAL_DEBUG
-                            Serial.print("Loading ");
-                            Serial.print(param->getIdentifier());                            
-                            Serial.print(" value ");
-                            Serial.println(param->toString());
-#endif                            
+                                JsonVariant val = ob["value"];
+                                if(!val.isNull()){
+                                    String strVal = val.as<String>();
+                                    param->setValue(strVal.c_str(), s, action);
+                                }
+                                DebugPrint(" value ");
+                                DebugPrintln(param->toString());
+                            }                            
                             param = param->getNextParameter();
                         }
                         grp = grp->getNext();
                     }                
                     ret = true;
-                }else{
-#ifdef ESPEasyCfg_SERIAL_DEBUG                    
-                    Serial.print("Bad config file version. Got ");
-                    Serial.print(fVersion);
-                    Serial.print(" expected ");
-                    Serial.println(version);
-#endif                    
+                }else{                
+                    DebugPrint("Bad config file version. Got ");
+                    DebugPrint(fVersion);
+                    DebugPrint(" expected ");
+                    DebugPrintln(version);    
                     ret = false; 
                 }
         } else {
