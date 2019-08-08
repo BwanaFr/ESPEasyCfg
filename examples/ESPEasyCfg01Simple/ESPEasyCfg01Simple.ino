@@ -27,6 +27,14 @@ ESPEasyCfg captivePortal(&server);
 void setup()
 {
     Serial.begin(115200);
+    //we can provide a IO pin to ESPEasyCfg
+    //this pin will blink according to what the captive portal is doing
+    //captivePortal.setLedPin(BUILTIN_LED);
+
+    //Additionnally, we can also wire a switch (active low)
+    //if this pin is low during startup, the password will be reset
+    //captivePortal.setSwitchPin(0);
+    
     //Start our captive portal (if not configured)
     //At first usage, you will find a new WiFi network named "MyThing"
     captivePortal.begin();
