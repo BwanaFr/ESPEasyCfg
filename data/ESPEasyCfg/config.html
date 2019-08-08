@@ -75,10 +75,7 @@
 				console.log("WiFi scan completed");
 				let $optSel = dest.find("option:selected");
 				dest.empty();
-				if($optSel){
-					console.log("Selected " + $optSel.html());
-				}
-				knownSSID = new Map();
+				knownSSID.clear();
 				data.networks.forEach(function (item, index) {
 					knownSSID.set(item.SSID, item);
 				});
@@ -86,7 +83,7 @@
 					$option = $("<option>");
 					if(currentValue.SSID ===  $optSel.html()){
 						$option.attr({"selected":true});
-						$option.attr("value", currentValue);
+						$option.attr("value", currentValue.SSID);
 					}
 					dest.append($option);
 					$option.html(currentValue.SSID);
