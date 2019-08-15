@@ -70,18 +70,28 @@ bool ESPEasyCfgParameterManagerJSON::loadParameters(ESPEasyCfgParameterGroup* fi
                                     param->setValue(strVal.c_str(), s, action);
                                 }
                                 DebugPrint(" value ");
-                                DebugPrintln(param->toString());
-                            }                            
+                                if(param->getInputType() && 
+                                    (strcmp(param->getInputType(), "password") == 0)){
+                                    String paramValue = param->toString();
+                                    if(paramValue.length()==0){
+                                        DebugPrintln("-Not set-");
+                                    }else{
+                                        DebugPrintln("-Secret-");
+                                    }
+                                }else{
+                                    DebugPrintln(param->toString());
+                                }
+                            }
                             param = param->getNextParameter();
                         }
                         grp = grp->getNext();
-                    }                
+                    }
                     ret = true;
-                }else{                
+                }else{
                     DebugPrint("Bad config file version. Got ");
                     DebugPrint(fVersion);
                     DebugPrint(" expected ");
-                    DebugPrintln(version);    
+                    DebugPrintln(version);
                     ret = false; 
                 }
         } else {
