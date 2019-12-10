@@ -42,7 +42,7 @@ class ESPEasyCfg
         ArRequestHandlerFunction _rootHandler;      //!< Root handler (if installed)
         ArRequestHandlerFunction _notFoundHandler;  //!< 404 error handler
         StateHandlerFunction _stateHandler;         //!< Custom handler for monitoring state
-
+        int8_t _scanCount;                          //!< WiFi scan
         /**
          * Serialize parameters to JSON
          * @param arr JSON array to put parameters to

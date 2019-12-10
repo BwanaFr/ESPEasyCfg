@@ -211,21 +211,19 @@ void ESPEasyCfg::begin()
     _webServer->on("/scan", HTTP_GET, [=](AsyncWebServerRequest *request){
         if((_state != ESPEasyCfgState::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
-        int n = WiFi.scanNetworks();
         AsyncJsonResponse * response = new AsyncJsonResponse();
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
         response->addHeader("Cache-Control", "max-age=10");
         JsonObject& root = (JsonObject&)response->getRoot();
         JsonArray arr = root.createNestedArray("networks");
-        for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < _scanCount; ++i) {
             JsonObject network = arr.createNestedObject();
             network["SSID"] = WiFi.SSID(i);
             network["RSSI"] = WiFi.RSSI(i);
             network["open"] = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
             network["channel"] = WiFi.channel(i);
         }
-		WiFi.scanDelete();
         response->setLength();
         request->send(response);
     });
@@ -253,6 +251,11 @@ void ESPEasyCfg::begin()
             }
         }
     });
+
+    //Scan networks
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    _scanCount = WiFi.scanNetworks();
 
     //Connect to WiFi
     if(_wifiSSID.getValue().length()>0){
@@ -310,6 +313,11 @@ void ESPEasyCfg::setParameterManager(ESPEasyCfgParameterManager* manager)
  */
 void ESPEasyCfg::switchToAP()
 {
+    //Scan networks before switching to AP mode
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    _scanCount = WiFi.scanNetworks();
+
     DebugPrintln("Switching to AP mode");
     WiFi.mode(WIFI_AP);
     if(_iotPass.getValue().length()>0){
@@ -373,6 +381,8 @@ void ESPEasyCfg::loop()
                     }
                     DebugPrint("\nConnected, IP is ");
                     DebugPrintln(WiFi.localIP());
+                    WiFi.scanDelete();
+                    _scanCount = 0;
                     setState(ESPEasyCfgState::Connected);
                 }else if((now-connectStart)>60000){
                     DebugPrintln();
