@@ -33,22 +33,36 @@
       <div class="modal-body" id="msgBody">
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" id="closeBtn">Close</button>
       </div>
     </div>
   </div>
 </div>
-	<script src="../www/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
-	<script src="../www/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-	<script src="../www/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-	<script>
+<script src="../www/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="../www/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="../www/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script>
 	const HIDDEN_PASS = "----------";
 	jQuery.fn.tagName = function() {
 		return this.prop("tagName");
 	};
 	var knownSSID = new Map();
-	function hideWiFiPass(){
-		let sel = $("#_wifiSSID option:checked").val();			
+	function SSIDChanged(){	
+		let sel = $("#_wifiSSID option:checked").val();
+		if(sel === '__HIDDEN'){
+			var $input = $("<input>");
+			$("#msgBody").text("Enter SSID:");
+			$("#msgBody").append($input);
+			$('#modalMsg').modal();
+			$('#closeBtn').click(function(){
+				console.log($input.val());
+				knownSSID.set($input.val(), { SSID: $input.val(), open: false});
+				let $newOpt = $("<option>").val($input.val()).text($input.val());
+				$('#_wifiSSID option').eq($('#_wifiSSID option').length-1).before($newOpt);
+				$newOpt.prop('selected', true);
+				sel = $input.val();
+			});
+		}
 		var network = knownSSID.get(sel);
 		console.log(network);
 		if(network && network.open){
@@ -56,9 +70,10 @@
 			$("#_wifiPass").val("");
 		}else{$("#_wifiPass").parent("div").show();}
 	}	
+	
 	function scanWiFi(dest, loader){
 		dest.prop('disabled', true);
-		dest.change(hideWiFiPass);
+		dest.change(SSIDChanged);
 		$.ajax('/scan',
 		{
 			crossDomain: true,
@@ -88,9 +103,10 @@
 					dest.append($option);
 					$option.html(currentValue.SSID);
 				});
+				dest.append($("<option>").val("__HIDDEN").text("Hidden SSID..."));
 				dest.prop('disabled', false);
 				loader.hide();
-				hideWiFiPass();				
+				SSIDChanged();				
 			},
 			error: function (jqXhr, textStatus, errorMessage) { // error callback 			
 				console.error('Error: ' + errorMessage);				
@@ -161,6 +177,7 @@
 			$('#subBtn').before($fieldset);
 		});
 		if(data.message){
+			$("#msgBody").empty();
 			$("#msgBody").text(data.message);
 			$('#modalMsg').modal();			
 		}
