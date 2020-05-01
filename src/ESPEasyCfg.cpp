@@ -37,7 +37,7 @@ ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer) :
     _wifiPass("_wifiPass", "WiFi password", "", "Password of WiFi network"),
     _paramGrp("Global settings"), _state(ESPEasyCfgState::WillConnect),
      _cfgHandler(nullptr), _dnsServer(nullptr), _paramManager(nullptr),
-     _lastCon(0), _ledPin(UNUSED_PIN), _switchPin(UNUSED_PIN)
+     _lastCon(0), _ledPin(UNUSED_PIN), _ledActiveLow(false), _switchPin(UNUSED_PIN), _scanCount(0)
 {
     //Add built-in parameters to the group
     _paramGrp.add(&_iotName);
@@ -439,14 +439,14 @@ void ESPEasyCfg::loop()
         if(_ledPin != UNUSED_PIN){
             if(ledState){
                 if((now-lastLedChange)>ledTimeOn){
-                    digitalWrite(_ledPin, LOW);
                     ledState = false;
+                    setLed(ledState);
                     lastLedChange = now;
                 }
             }else{
                 if((now-lastLedChange)>ledTimeOff){
-                    digitalWrite(_ledPin, HIGH);
                     ledState = true;
+                    setLed(ledState);
                     lastLedChange = now;
                 }
             }
@@ -492,6 +492,16 @@ void ESPEasyCfg::setState(ESPEasyCfgState newState)
         _state = newState;
         if(_stateHandler){
             _stateHandler(_state);
+        }
+    }
+}
+
+void ESPEasyCfg::setLed(bool state) {
+    if(_ledPin != UNUSED_PIN){
+        if(_ledActiveLow){
+            digitalWrite(_ledPin, state ? LOW : HIGH);
+        }else{
+            digitalWrite(_ledPin, state ? HIGH : LOW);
         }
     }
 }

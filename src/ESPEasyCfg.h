@@ -38,11 +38,12 @@ class ESPEasyCfg
         ESPEasyCfgParameterManager* _paramManager;  //!< Manager to read/write application parameters        
         long long _lastCon;                         //!< Last millis() of WiFi connection
         uint8_t _ledPin;                            //!< LED pin to signal activity
+        bool _ledActiveLow;                         //!< Led active low cabling
         uint8_t _switchPin;                         //!< Switch pin to reset password
+        int8_t _scanCount;                          //!< WiFi scan
         ArRequestHandlerFunction _rootHandler;      //!< Root handler (if installed)
         ArRequestHandlerFunction _notFoundHandler;  //!< 404 error handler
         StateHandlerFunction _stateHandler;         //!< Custom handler for monitoring state
-        int8_t _scanCount;                          //!< WiFi scan
         /**
          * Serialize parameters to JSON
          * @param arr JSON array to put parameters to
@@ -82,6 +83,11 @@ class ESPEasyCfg
          */
         void setState(ESPEasyCfgState newState);
         
+        /**
+         * Sets LED state
+         */
+        void setLed(bool state);
+
     public:
 #ifdef ESP32
         /**
@@ -141,6 +147,14 @@ class ESPEasyCfg
          * @param pin Pin number (active high)
          */
         void setLedPin(int8_t pin);
+
+        /**
+         * Sets if the LED is active low or high
+         * @param activeLow True if the LED is cabled as active low
+         */
+        inline void setLedActiveLow(bool activeLow) {
+            _ledActiveLow = activeLow;
+        }
 
         /**
          * Sets the switch pin to reset configuration
