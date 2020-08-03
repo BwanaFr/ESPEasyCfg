@@ -255,6 +255,9 @@ void ESPEasyCfg::begin()
     //Scan networks
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
+#ifdef ESP8266
+    delay(200);
+#endif
     _scanCount = WiFi.scanNetworks();
 
     //Connect to WiFi
@@ -316,6 +319,9 @@ void ESPEasyCfg::switchToAP()
     //Scan networks before switching to AP mode
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
+#ifdef ESP8266
+    delay(200);
+#endif
     _scanCount = WiFi.scanNetworks();
 
     DebugPrintln("Switching to AP mode");
@@ -381,8 +387,6 @@ void ESPEasyCfg::loop()
                     }
                     DebugPrint("\nConnected, IP is ");
                     DebugPrintln(WiFi.localIP());
-                    WiFi.scanDelete();
-                    _scanCount = 0;
                     setState(ESPEasyCfgState::Connected);
                 }else if((now-connectStart)>60000){
                     DebugPrintln();
