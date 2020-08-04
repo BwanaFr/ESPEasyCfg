@@ -16,6 +16,7 @@ public:
     const char* getInputType() override;
     void toJSON(ArduinoJson::JsonObject& dest, bool lightOutput) override;
     bool setValue(const char* value, String& errMsg, int8_t& action, bool validate) override;
+    inline void setValue(const char* value) { _value = value; };
 private:
     String _value;
     const char* _items;
