@@ -142,7 +142,7 @@ void ESPEasyCfg::begin()
                 .setCacheControl("public, max-age=31536000").setLastModified("Mon, 04 Mar 2019 07:00:00 GMT");
     //Configuration webpage, we must keep the handler reference to enable/disable authentication
     AsyncStaticWebHandler &fileHandler = _webServer->serveStatic("/ESPEasyCfg/config.html", SPIFFS, "/ESPEasyCfg/config.html")
-                .setCacheControl("public, max-age=31536000").setLastModified("Tue, 10 Dec 2019 15:14:00 GMT");
+                .setCacheControl("public, max-age=31536000").setLastModified("Tue, 4 Aug 2020 15:00:00 GMT");
     _fileHandler = &fileHandler;
     //Root handling
     _webServer->on("/", HTTP_GET, [=](AsyncWebServerRequest *request){
