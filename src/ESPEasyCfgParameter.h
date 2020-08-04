@@ -127,16 +127,16 @@ public:
     ESPEasyCfgParameter(const char* id, const char* name, T defaultValue, const char* description = nullptr,
                         const char* extraAttributes = nullptr);
     virtual ~ESPEasyCfgParameter();
-    String toString();
-    size_t getStorageSize();
-    bool storeTo(void* buffer, size_t bufferLen);
-    bool loadFrom(const void* buffer, size_t bufferLen);
+    String toString() override;
+    size_t getStorageSize() override;
+    bool storeTo(void* buffer, size_t bufferLen) override;
+    bool loadFrom(const void* buffer, size_t bufferLen) override;
     T getValue();
     void setValue(T value);
     void setInputType(const char* type);
-    const char* getInputType();
-    void toJSON(ArduinoJson::JsonObject& dest, bool lightOutput);
-    bool setValue(const char* value, String& errMsg, int8_t& action, bool validate);
+    const char* getInputType() override;
+    void toJSON(ArduinoJson::JsonObject& dest, bool lightOutput) override;
+    bool setValue(const char* value, String& errMsg, int8_t& action, bool validate) override;
     inline void setValidator(ValidatorFunction validator) { _validator = validator; }
 };
 
