@@ -139,6 +139,18 @@
 						$option.html(parameter.value);
 					}
 					scanWiFi($select, $loader);
+				}else if(parameter.type && parameter.type=="enum"){
+					$select = $("<select>", {id:parameter.id, "name":parameter.id, "class":"form-control"});
+					$div.append($select);
+					parameter.values.forEach(function(value){
+						$option = $("<option>");
+						$option.attr("value", value);
+						if(parameter.value && value == parameter.value){
+							$option.attr({"selected":true});
+						}
+						$select.append($option);
+						$option.html(value);
+					});
 				}else{
 					$input = $("<input>", {id:parameter.id, "name":parameter.id, "class":"form-control", "type":"text", "value":parameter.value});
 					$div.append($input);

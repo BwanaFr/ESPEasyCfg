@@ -5,6 +5,7 @@
 #include <ArduinoJson.hpp>
 #include <AsyncJson.h>
 #include "ESPEasyCfgParameter.h"
+#include "ESPEasyCfgEnumParameter.h"
 #include <DNSServer.h>
 
 

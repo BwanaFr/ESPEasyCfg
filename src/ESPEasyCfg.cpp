@@ -153,7 +153,7 @@ void ESPEasyCfg::begin()
         }else{
             if(!_rootHandler){
                 //No root handler installed, fall back to our configuration page
-                if(!request->authenticate("admin", _iotPass.getValue().c_str()))
+                if((_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
                     return request->requestAuthentication(_iotName.getValue().c_str());
                 request->redirect(F("/ESPEasyCfg/config.html"));
             }else{
@@ -166,7 +166,7 @@ void ESPEasyCfg::begin()
     _webServer->on("/config", HTTP_GET, [=](AsyncWebServerRequest *request){
         if((_state != ESPEasyCfgState::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
-        AsyncJsonResponse * response = new AsyncJsonResponse();
+        AsyncJsonResponse * response = new AsyncJsonResponse(false, 4096U);
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
         JsonObject& root = (JsonObject&)response->getRoot();
@@ -185,7 +185,7 @@ void ESPEasyCfg::begin()
         int8_t action;
         fromJSON(jsonObj, &_paramGrp, str, action);
 
-        AsyncJsonResponse * response = new AsyncJsonResponse();
+        AsyncJsonResponse * response = new AsyncJsonResponse(false, 4096U);
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
         JsonObject& root = (JsonObject&)response->getRoot();
