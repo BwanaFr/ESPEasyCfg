@@ -176,6 +176,11 @@ class ESPEasyCfg
          * @handler Handler function to be called
          */
         void setStateHandler(StateHandlerFunction handler);
+
+        /**
+         * Save actual parameters values to flash
+         */
+        void saveParameters();
 };
 
 

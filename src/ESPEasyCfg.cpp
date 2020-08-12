@@ -199,7 +199,7 @@ void ESPEasyCfg::begin()
         }
         response->setLength();
         request->send(response);
-        _paramManager->saveParameters(&_paramGrp, CFG_VERSION);
+        saveParameters();
         if(_stateHandler){
             _stateHandler(ESPEasyCfgState::Reconfigured);
         }
@@ -211,7 +211,7 @@ void ESPEasyCfg::begin()
     _webServer->on("/scan", HTTP_GET, [=](AsyncWebServerRequest *request){
         if((_state != ESPEasyCfgState::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
-        AsyncJsonResponse * response = new AsyncJsonResponse();
+        AsyncJsonResponse * response = new AsyncJsonResponse(false, 4096U);
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
         response->addHeader("Cache-Control", "max-age=10");
@@ -508,4 +508,9 @@ void ESPEasyCfg::setLed(bool state) {
             digitalWrite(_ledPin, state ? HIGH : LOW);
         }
     }
+}
+
+void ESPEasyCfg::saveParameters() {
+    if(_paramManager)
+        _paramManager->saveParameters(&_paramGrp, CFG_VERSION);
 }
