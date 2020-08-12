@@ -75,10 +75,13 @@ void ESPEasyCfg::toJSON(ArduinoJson::JsonArray& arr, ESPEasyCfgParameterGroup* f
     //Create JSON entry for each parameter in the group
     while(param != nullptr)
     {
-        JsonObject obj1 = paramArr.createNestedObject();
-        param->toJSON(obj1);
-        const char* type = param->getInputType();
-        if(type != nullptr){ obj1["type"] = type;}
+        if(!param->isHidden()){
+            JsonObject obj1 = paramArr.createNestedObject();
+            param->toJSON(obj1);
+            const char* type = param->getInputType();
+            if(type != nullptr)
+                obj1["type"] = type;
+        }
         param = param->getNextParameter();
     }
     //Recursive call if a parameter group follow this one

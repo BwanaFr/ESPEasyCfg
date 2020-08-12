@@ -20,6 +20,7 @@ private:
     const char* _name;
     const char* _description;
     const char* _extraAttributes;
+    bool _hidden;
     ESPEasyCfgAbstractParameter* _nextParam;
     friend class ESPEasyCfgParameterGroup;
 
@@ -31,7 +32,8 @@ public:
     ESPEasyCfgAbstractParameter(const char* id, const char* name, 
             const char* description = nullptr,
             const char* extraAttributes = nullptr) : 
-            _id(id), _name(name), _description(description), _extraAttributes(extraAttributes), _nextParam(nullptr){}
+            _id(id), _name(name), _description(description), _extraAttributes(extraAttributes), 
+            _hidden(false), _nextParam(nullptr){}
 
     /**
      * Return a string representation of the parameter
@@ -109,6 +111,18 @@ public:
      * @return true if ok
      */
     virtual bool setValue(const char* value, String& msg, int8_t& action, bool validate=false) = 0;
+
+    /**
+     * Gets if the parameter should be hidden from configuration page
+     * @param hidden True if the parameter should not be sent to the configuration page
+     */
+    inline void setHidden(bool hidden){_hidden = hidden;}
+
+    /**
+     * Gets if this parameter is hidden
+     * @return True if the parameter should be hidden from the configuration page
+     */
+    inline bool isHidden(){return _hidden;}
 };
 
 /**
