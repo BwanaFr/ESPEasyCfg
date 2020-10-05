@@ -110,6 +110,38 @@ void ESPEasyCfg::fromJSON(ArduinoJson::JsonObject& json, ESPEasyCfgParameterGrou
     }
 }
 
+void ESPEasyCfg::addInfosPairToJSON(ArduinoJson::JsonArray& arr, const char* name, const String& value)
+{
+    //Create an entry in the array
+    JsonObject pair = arr.createNestedObject();
+    //Put name of the parameter group
+    pair["name"] = name;
+    pair["value"] = value;
+}
+
+void ESPEasyCfg::addInfosToJSON(ArduinoJson::JsonArray& arr)
+{
+    addInfosPairToJSON(arr, "IP address", WiFi.localIP().toString());
+    addInfosPairToJSON(arr, "Subnet mask", WiFi.subnetMask().toString());
+    addInfosPairToJSON(arr, "Gateway address", WiFi.gatewayIP().toString());
+    addInfosPairToJSON(arr, "DNS server", WiFi.dnsIP().toString());
+    byte mac[6];                     // the MAC address of your Wifi shield
+    WiFi.macAddress(mac);
+    String macAddr = "";
+    for(uint8_t i=0;i<6;++i){
+        if(mac[i] < 0x10){
+            macAddr += "0";
+        }
+        macAddr += String(mac[i], HEX);
+        if(i<5)
+            macAddr += ':';
+    }
+    addInfosPairToJSON(arr, "MAC address", macAddr.c_str());
+
+    addInfosPairToJSON(arr, "WiFi channel", String(WiFi.channel(), DEC));
+    addInfosPairToJSON(arr, "WiFi RSSI", String(WiFi.RSSI(), DEC));
+}
+
 void ESPEasyCfg::begin()
 {
     //Register parameter callback to validate/act when needed
@@ -145,7 +177,7 @@ void ESPEasyCfg::begin()
                 .setCacheControl("public, max-age=31536000").setLastModified("Mon, 04 Mar 2019 07:00:00 GMT");
     //Configuration webpage, we must keep the handler reference to enable/disable authentication
     AsyncStaticWebHandler &fileHandler = _webServer->serveStatic("/ESPEasyCfg/config.html", SPIFFS, "/ESPEasyCfg/config.html")
-                .setCacheControl("public, max-age=31536000").setLastModified("Tue, 4 Aug 2020 15:00:00 GMT");
+                .setCacheControl("public, max-age=31536000").setLastModified("Mon, 5 Oct 2020 15:00:00 GMT");
     _fileHandler = &fileHandler;
     //Root handling
     _webServer->on("/", HTTP_GET, [=](AsyncWebServerRequest *request){
@@ -173,6 +205,8 @@ void ESPEasyCfg::begin()
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
         JsonObject& root = (JsonObject&)response->getRoot();
+        JsonArray infoArr = root.createNestedArray("infos");
+        addInfosToJSON(infoArr);
         JsonArray arr = root.createNestedArray("groups");
         toJSON(arr, &_paramGrp);
         response->setLength();

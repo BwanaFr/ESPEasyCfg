@@ -51,6 +51,7 @@ class ESPEasyCfg
          * @param first First parameter group to get parameters from
          */
         void toJSON(ArduinoJson::JsonArray& arr, ESPEasyCfgParameterGroup* first);
+
         /**
          * Parse parameters from JSON and store it into parameters
          * @param json JSON object to be parsed
@@ -59,6 +60,16 @@ class ESPEasyCfg
          * @param action Action to be performed
          */
         void fromJSON(ArduinoJson::JsonObject& json, ESPEasyCfgParameterGroup* first, String& msg, int8_t& action);
+
+        /**
+         * Adds informations to JSON data
+         */
+        void addInfosPairToJSON(ArduinoJson::JsonArray& arr, const char* name, const String& value);
+
+        /**
+         * Adds informations to JSON data
+         */
+        void addInfosToJSON(ArduinoJson::JsonArray& arr);
 
         /**
          * Start and run DNS server
