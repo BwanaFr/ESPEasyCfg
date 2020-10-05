@@ -24,7 +24,7 @@ void ESPEasyCfgParameterManagerJSON::init(ESPEasyCfgParameterGroup* firstGroup)
 
 bool ESPEasyCfgParameterManagerJSON::saveParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version)
 {
-    StaticJsonDocument<JSON_BUFFER_SIZE> root;
+    DynamicJsonDocument root(JSON_BUFFER_SIZE);
     root["version"] = version;
     JsonArray arr = root.createNestedArray("parameters");
     ESPEasyCfgParameterGroup* grp = firstGroup;
