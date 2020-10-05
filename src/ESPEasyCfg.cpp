@@ -181,7 +181,7 @@ void ESPEasyCfg::begin()
         if(_state == ESPEasyCfgState::AP){
             //In AP mode, we must serve the first page
             DebugPrintln("Captive portal redirected");
-            request->send(200, "text/html", F("<!DOCTYPE html><html><body><script>location.replace(\"/ESPEasyCfg/config.html\");</script></body></html>"));
+            request->send(200, "text/html", F("<!DOCTYPE html><html><body><script>location.replace(\"/www/config.html\");</script></body></html>"));
         }else{
             if(!_rootHandler){
                 //No root handler installed, fall back to our configuration page
