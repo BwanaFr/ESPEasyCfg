@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IoT configuration</title>	
+	<link rel="stylesheet" href="../www/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  </head>
+  <body>
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-md-12">
+		<form role="form" id="form" action="">
+        <button class="btn btn-primary" type="button" id="subBtn" disabled>
+		  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" id="btnloader"></span>
+		  Loading...
+		</button>
+    	</form>
+		</div>
+	</div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="modalMsg" tabindex="-1" role="dialog" aria-labelledby="modalMsgTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalMsgLongTitle">Information message</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="msgBody">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" id="closeBtn">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="../www/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="../www/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="../www/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script>
+	const HIDDEN_PASS = "----------";
+	jQuery.fn.tagName = function() {
+		return this.prop("tagName");
+	};
+	var deviceInfo;
+	var knownSSID = new Map();
+	function SSIDChanged(){	
+		let sel = $("#_wifiSSID option:checked").val();
+		if(sel === '__HIDDEN'){
+			var $input = $("<input>");
+			$("#msgBody").text("Enter SSID:");
+			$("#msgBody").append($input);
+			$('#modalMsg').modal();
+			$('#closeBtn').click(function(){
+				console.log($input.val());
+				knownSSID.set($input.val(), { SSID: $input.val(), open: false});
+				let $newOpt = $("<option>").val($input.val()).text($input.val());
+				$('#_wifiSSID option').eq($('#_wifiSSID option').length-1).before($newOpt);
+				$newOpt.prop('selected', true);
+				sel = $input.val();
+			});
+		}
+		var network = knownSSID.get(sel);
+		console.log(network);
+		if(network && network.open){
+			$("#_wifiPass").parent("div").hide();
+			$("#_wifiPass").val("");
+		}else{$("#_wifiPass").parent("div").show();}
+	}	
+	
+	function errorMsg(title, message) {
+		$("#msgBody").empty();
+		var msgDiv = $("<div>");
+		msgDiv.append('<b>Error</b><br/>');
+		msgDiv.append(title);
+		msgDiv.append('<br/>');
+		msgDiv.append(message);
+		msgDiv.addClass("alert alert-danger");
+		$("#msgBody").text();
+		$("#msgBody").append(msgDiv);
+		$('#modalMsg').modal();
+	}
+
+	function scanWiFi(dest, loader){
+		dest.prop('disabled', true);
+		dest.change(SSIDChanged);
+		$.ajax('/scan',
+		{
+			crossDomain: true,
+			//Hack, remove me
+			beforeSend: function(xhr){
+				if (xhr.overrideMimeType)
+				{
+				  xhr.overrideMimeType("application/json");
+				}
+			  },
+			dataType: 'json', // type of response data
+			timeout: 30000,     // timeout milliseconds
+			success: function (data,status,xhr) {
+				console.log("WiFi scan completed");
+				let $optSel = dest.find("option:selected");
+				let selFound = false;
+				dest.empty();
+				knownSSID.clear();
+				data.networks.forEach(function (item, index) {
+					knownSSID.set(item.SSID, item);
+				});
+				knownSSID.forEach(function(currentValue, currentKey, set){
+					$option = $("<option>");
+					if(currentValue.SSID ===  $optSel.html()){
+						$option.attr({"selected":true});
+						$option.attr("value", currentValue.SSID);
+						selFound = true;
+					}
+					dest.append($option);
+					$option.html(currentValue.SSID);
+				});
+				if(!selFound) {
+					dest.append($optSel);
+				}
+				dest.append($("<option>").val("__HIDDEN").text("Hidden SSID..."));
+				dest.prop('disabled', false);
+				loader.hide();
+				SSIDChanged();				
+			},
+			error: function (jqXhr, textStatus, errorMessage) {
+				errorMsg('Unable to get Wifi networks list:', errorMessage);
+			}
+		});
+	}
+	
+	function showInfos() {
+		$("#msgBody").empty();
+		let msgDiv = $("<div>");
+		msgDiv.append('<b>Device informations</b>');	
+		if(deviceInfo){
+			let list = $('<ul>');
+			list.addClass('list-group');
+			deviceInfo.forEach(function(item, index){
+				let itm = $('<li>');
+				itm.addClass('list-group-item');
+				let t = $('<span>');
+				t.addClass('text-primary');
+				t.append(item.name);
+				itm.append(t);
+				itm.append(' : ');
+				let v = $('<span>');
+				v.addClass('text-secondary');
+				v.append(item.value);
+				itm.append(v);
+				list.append(itm);
+			});
+			msgDiv.append(list);
+		}else{
+			msgDiv.append('<br/>No data available.');
+		}
+		msgDiv.addClass("alert alert-info");
+		$("#msgBody").text();
+		$("#msgBody").append(msgDiv);
+		$('#modalMsg').modal();
+	}
+
+	function loadForm(data, status, xhr) {
+		console.log("JSON received");
+		$('#form fieldset').remove();
+		deviceInfo = data.infos;
+		data.groups.forEach(function (item, index) {
+			let $fieldset = $("<fieldset>");
+			let $fsLegend = $('<legend>');
+			$fsLegend.append(item.name);
+			if(index == 0){
+				let infoLink = $('<a href="#">');
+				infoLink.append('&#9432;');
+				infoLink.click(showInfos);
+				$fsLegend.append(infoLink);
+			}
+			$fieldset.append($fsLegend);
+			item.parameters.forEach(function (parameter, paramIndex) {
+				let $div = $("<div class='form-group'>");
+				$fieldset.append($div);
+				let $label = $("<label>", {"for" : parameter.id}).text(parameter.name + " : ");
+				$div.append($label);
+				if(parameter.type && parameter.type=="ssid"){
+					//Network scan result
+					$loader = $('<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>');
+					$label.before($loader);
+					$select = $("<select>", {id:parameter.id, "name":parameter.id, "class":"form-control"});
+					$div.append($select);
+					if(parameter.value){
+						$option = $("<option>");
+						$option.select();
+						$option.attr("value", parameter.value);
+						$select.append($option);
+						$option.html(parameter.value);
+					}
+					scanWiFi($select, $loader);
+				}else if(parameter.type && parameter.type=="enum"){
+					$select = $("<select>", {id:parameter.id, "name":parameter.id, "class":"form-control"});
+					$div.append($select);
+					parameter.values.forEach(function(value){
+						$option = $("<option>");
+						$option.attr("value", value);
+						if(parameter.value && value == parameter.value){
+							$option.attr({"selected":true});
+						}
+						$select.append($option);
+						$option.html(value);
+					});
+				}else{
+					$input = $("<input>", {id:parameter.id, "name":parameter.id, "class":"form-control", "type":"text", "value":parameter.value});
+					$div.append($input);
+					if(parameter.type){
+						$input.attr("type", parameter.type);
+						if(parameter.type == "password"){								
+							if(parameter.value){
+								$input.attr("value", HIDDEN_PASS);
+								$input.attr("onfocus", "this.value=''");
+							}
+						}
+					}
+					if(parameter.desc){
+						$input.attr("placeholder", parameter.desc);
+					}
+					if(parameter.attributes){
+						console.log("Setting attribute");
+						$input.attr(JSON.parse(parameter.attributes));
+					}
+					if(parameter.invalid ){
+						if(parameter.invalid == true){
+							$input.addClass("is-invalid");
+						}else{
+							$input.addClass("is-valid");
+						}
+					}
+				}
+				let $errDiv = $("<div>", {class:"invalid-feedback"});
+				if(parameter.errorMsg){
+					$errDiv.text(parameter.errorMsg);
+				}else{
+					$errDiv.text("Please provide a valid value.");
+				}
+				$div.append($errDiv);
+			});					
+			$('#subBtn').before($fieldset);
+		});
+		if(data.message){
+			$("#msgBody").empty();
+			$("#msgBody").text(data.message);
+			$('#modalMsg').modal();			
+		}
+		$('#subBtn').attr("type", "submit");
+		$('#subBtn').text("Submit");
+		$('#subBtn').removeAttr("disabled");		
+	}
+	
+	function buildForm(){
+		$.ajax('/config',
+		{
+			crossDomain: true,
+			beforeSend: function(xhr){
+				if (xhr.overrideMimeType)
+				{
+				  xhr.overrideMimeType("application/json");
+				}
+			  },
+			dataType: 'json', // type of response data
+			timeout: 10000,     // timeout milliseconds
+			success: loadForm,
+			error: function (jqXhr, textStatus, errorMessage) { // error callback 			
+				errorMsg('Unable to load parameters:', errorMessage);				
+			}
+		});
+	}
+	function serializeForm(){
+		var ret = new Object();
+		$('#form').find(':input').each(function(){
+			if((($(this).attr("type") === "password" && $(this).val() === HIDDEN_PASS)) 
+				|| $(this).tagName() === "BUTTON"){
+				return;
+			}
+			ret[$(this).attr("id")] = $(this).val();			
+		});
+		
+		return ret;
+	}
+	
+	buildForm();
+	$("#subBtn").on('click', function(e) {
+		$('#subBtn').attr("disabled", true);
+		console.log("Sending form");
+		var formData =  serializeForm();
+		e.preventDefault();		
+		$.ajax({
+			method : "POST",
+			url: "/configPost",
+			data: JSON.stringify(formData),
+			contentType: "application/json",
+			dataType: "json",			
+			success: loadForm,
+			failure: function(errMsg) {
+				errorMsg('Unable to save parameters:', errMsg);
+			}
+		  });
+	});
+	</script>
+  </body>
+</html>

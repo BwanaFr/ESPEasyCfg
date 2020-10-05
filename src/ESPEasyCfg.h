@@ -34,7 +34,7 @@ class ESPEasyCfg
         ESPEasyCfgParameterGroup _paramGrp;         //!< Group for holding build-in parameters
         ESPEasyCfgState _state;                     //!< State of this application
         AsyncCallbackJsonWebHandler* _cfgHandler;   //!< Web handler to handle set of parameter
-        AsyncStaticWebHandler* _fileHandler;        //!< Web handler for static files stored in SPIFFS on /wwww/
+        AsyncWebHandler* _fileHandler;              //!< Web handler for static files stored in SPIFFS on /wwww/
         DNSServer* _dnsServer;                      //!< DNS server to handle captive portal redirections
         ESPEasyCfgParameterManager* _paramManager;  //!< Manager to read/write application parameters        
         long long _lastCon;                         //!< Last millis() of WiFi connection

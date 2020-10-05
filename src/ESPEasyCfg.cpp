@@ -16,6 +16,7 @@
 
 #include "ESPEasyCfgParameterManagerJSON.h"
 #include "ESPEasyCfgConfiguration.h"
+#include "StaticContent.h"
 
 #define CFG_VERSION "1.0.0"
 #define UNUSED_PIN 0xFF
@@ -172,13 +173,9 @@ void ESPEasyCfg::begin()
     //Install HTTP handlers
     //Server static files
     SPIFFS.begin();
-    //Libraries (JQuery, Bootstrap) static files
-    _webServer->serveStatic("/www/", SPIFFS, "/www/")
-                .setCacheControl("public, max-age=31536000").setLastModified("Mon, 04 Mar 2019 07:00:00 GMT");
-    //Configuration webpage, we must keep the handler reference to enable/disable authentication
-    AsyncStaticWebHandler &fileHandler = _webServer->serveStatic("/ESPEasyCfg/config.html", SPIFFS, "/ESPEasyCfg/config.html")
-                .setCacheControl("public, max-age=31536000").setLastModified("Mon, 5 Oct 2020 15:00:00 GMT");
-    _fileHandler = &fileHandler;
+
+    //Register static files stored into flash (Libraries (JQuery, Bootstrap) and config page)
+    _fileHandler = registerStaticFiles(_webServer);
     //Root handling
     _webServer->on("/", HTTP_GET, [=](AsyncWebServerRequest *request){
         if(_state == ESPEasyCfgState::AP){
@@ -190,7 +187,7 @@ void ESPEasyCfg::begin()
                 //No root handler installed, fall back to our configuration page
                 if((_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
                     return request->requestAuthentication(_iotName.getValue().c_str());
-                request->redirect(F("/ESPEasyCfg/config.html"));
+                request->redirect(F("/www/config.html"));
             }else{
                 _rootHandler(request);
             }
