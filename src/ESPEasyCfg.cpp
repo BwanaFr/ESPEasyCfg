@@ -20,6 +20,8 @@
 
 #define CFG_VERSION "1.0.0"
 #define UNUSED_PIN 0xFF
+#define AP_RECO_TIME 120000
+#define AP_RECO_TIMEOUT 10000
 
 #ifdef ESP32
 void ESPEasyCfgMonitorTask(void* instance)
@@ -38,7 +40,8 @@ ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer) :
     _wifiPass("_wifiPass", "WiFi password", "", "Password of WiFi network"),
     _paramGrp("Global settings"), _state(ESPEasyCfgState::WillConnect),
      _cfgHandler(nullptr), _dnsServer(nullptr), _paramManager(nullptr),
-     _lastCon(0), _ledPin(UNUSED_PIN), _ledActiveLow(false), _switchPin(UNUSED_PIN), _scanCount(0)
+     _lastCon(0), _lastApUsage(0), _ledPin(UNUSED_PIN), _ledActiveLow(false),
+     _switchPin(UNUSED_PIN), _scanCount(0)
 {
     //Add built-in parameters to the group
     _paramGrp.add(&_iotName);
@@ -179,6 +182,7 @@ void ESPEasyCfg::begin()
     //Root handling
     _webServer->on("/", HTTP_GET, [=](AsyncWebServerRequest *request){
         if(_state == ESPEasyCfgState::AP){
+            _lastApUsage = millis();
             //In AP mode, we must serve the first page
             DebugPrintln("Captive portal redirected");
             request->send(200, "text/html", F("<!DOCTYPE html><html><body><script>location.replace(\"/www/config.html\");</script></body></html>"));
@@ -208,6 +212,9 @@ void ESPEasyCfg::begin()
         toJSON(arr, &_paramGrp);
         response->setLength();
         request->send(response);
+        if(_state == ESPEasyCfgState::AP){
+            _lastApUsage = millis();
+        }
     });
 
     //Handler to receive new configuration
@@ -237,6 +244,9 @@ void ESPEasyCfg::begin()
         if(_stateHandler){
             _stateHandler(ESPEasyCfgState::Reconfigured);
         }
+        if(_state == ESPEasyCfgState::AP){
+            _lastApUsage = millis();
+        }
     });
     _webServer->addHandler(_cfgHandler);
 
@@ -260,9 +270,13 @@ void ESPEasyCfg::begin()
         }
         response->setLength();
         request->send(response);
+        if(_state == ESPEasyCfgState::AP){
+            _lastApUsage = millis();
+        }
     });
     _webServer->onNotFound([=](AsyncWebServerRequest * request){
         if(_state == ESPEasyCfgState::AP){
+            _lastApUsage = millis();
             DebugPrint("Requested :" );
             DebugPrintln(request->host());
             if(!request->host().startsWith(_iotName.getValue()) ||
@@ -350,6 +364,7 @@ void ESPEasyCfg::setParameterManager(ESPEasyCfgParameterManager* manager)
  */
 void ESPEasyCfg::switchToAP()
 {
+    _lastApUsage = millis();
     //Scan networks before switching to AP mode
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
@@ -396,6 +411,7 @@ void ESPEasyCfg::loop()
 {
     static unsigned long connectStart = 0;
     static unsigned long lastLedChange = 0;
+    static unsigned long connTimeout = 60000;
     unsigned long ledTimeOn = 500;
     unsigned long ledTimeOff = 500;
 #ifdef ESPEasyCfg_SERIAL_DEBUG
@@ -422,9 +438,10 @@ void ESPEasyCfg::loop()
                     DebugPrint("\nConnected, IP is ");
                     DebugPrintln(WiFi.localIP());
                     setState(ESPEasyCfgState::Connected);
-                }else if((now-connectStart)>60000){
+                }else if((now-connectStart)>connTimeout){
                     DebugPrintln();
                     DebugPrint("Connection timeout ");
+                    connectStart = now;
                     switchToAP();
 #ifdef ESPEasyCfg_SERIAL_DEBUG
                 }else if((now-lastPrint)>1000){
@@ -464,6 +481,13 @@ void ESPEasyCfg::loop()
                 ledTimeOn = 100;
                 ledTimeOff = 100;
                 runDNS();
+                if(!_wifiSSID.getValue().isEmpty()){
+                    if((now-_lastApUsage)>AP_RECO_TIME){
+                        connTimeout = AP_RECO_TIMEOUT;
+                        DebugPrintln("Trying to reconnect");
+                        _state = ESPEasyCfgState::WillConnect;
+                    }
+                }
                 break;
             }
             case ESPEasyCfgState::Connected:

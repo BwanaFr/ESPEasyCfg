@@ -38,6 +38,7 @@ class ESPEasyCfg
         DNSServer* _dnsServer;                      //!< DNS server to handle captive portal redirections
         ESPEasyCfgParameterManager* _paramManager;  //!< Manager to read/write application parameters        
         long long _lastCon;                         //!< Last millis() of WiFi connection
+        long long _lastApUsage;                     //!< Last millis() of AP utilization
         uint8_t _ledPin;                            //!< LED pin to signal activity
         bool _ledActiveLow;                         //!< Led active low cabling
         uint8_t _switchPin;                         //!< Switch pin to reset password
