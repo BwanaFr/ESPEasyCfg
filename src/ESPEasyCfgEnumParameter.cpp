@@ -18,6 +18,22 @@ ESPEasyCfgEnumParameter::ESPEasyCfgEnumParameter(const char* id, const char* nam
     }
 }
 
+ESPEasyCfgEnumParameter::ESPEasyCfgEnumParameter(ESPEasyCfgParameterGroup& group, const char* id, const char* name, const char* items,
+                        const char* defaultValue, const char* description,
+                        const char* extraAttributes):
+                        ESPEasyCfgAbstractParameter(group, id, name, description, extraAttributes),
+                        _items(items), _itemSearchOffset(0)
+{
+    if(defaultValue){
+        _value = defaultValue;
+    }else{
+        char val[MAX_STRING_SIZE];
+        getNextItem(val);
+        _value = val;
+        _itemSearchOffset = 0;
+    }
+}
+
 ESPEasyCfgEnumParameter::~ESPEasyCfgEnumParameter()
 {
 

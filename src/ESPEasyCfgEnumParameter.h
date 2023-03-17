@@ -8,6 +8,10 @@ public:
     ESPEasyCfgEnumParameter(const char* id, const char* name, const char* items,
                         const char* defaultValue = nullptr, const char* description = nullptr,
                         const char* extraAttributes = nullptr);
+    ESPEasyCfgEnumParameter(ESPEasyCfgParameterGroup& group, const char* id, const char* name, const char* items,
+                        const char* defaultValue = nullptr, const char* description = nullptr,
+                        const char* extraAttributes = nullptr);
+                       
     virtual ~ESPEasyCfgEnumParameter();
     String toString() override;
     size_t getStorageSize() override;
