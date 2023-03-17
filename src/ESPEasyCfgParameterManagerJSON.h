@@ -4,9 +4,6 @@
 #include <ESPEasyCfgParameter.h>
 #include <ArduinoJson.h>
 
-#define JSON_BUFFER_SIZE 1024
-#define PARAMETER_JSON_FILE "/parameters.json"
-
 class ESPEasyCfgParameterManagerJSON : public ESPEasyCfgParameterManager
 {
 public:    

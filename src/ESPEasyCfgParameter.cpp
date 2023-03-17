@@ -12,6 +12,16 @@ ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(const char* id, const char* name
 }
 
 template<>
+ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(ESPEasyCfgParameterGroup& group, const char* id, const char* name,
+     char* defaultValue, const char* description, const char* extraAttributes) : 
+    ESPEasyCfgAbstractParameter(group, id, name, description, extraAttributes)
+{
+    _value = new char[MAX_STRING_SIZE];
+    strncpy(_value, defaultValue, MAX_STRING_SIZE-1);
+    _value[MAX_STRING_SIZE-1] = '\0';
+}
+
+template<>
 ESPEasyCfgParameter<char*>::~ESPEasyCfgParameter()
 {
     delete _value;

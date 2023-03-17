@@ -20,8 +20,16 @@ void ESPEasyCfgMonitorTask(void* instance);
  * @Reconfigured Application is reconfigured via web interface
  */
 enum class ESPEasyCfgState {Connecting, AP, Connected, WillConnect, Reconfigured};
-
 typedef std::function<void(ESPEasyCfgState)> StateHandlerFunction;
+
+/**
+ * Message type
+ * @Info Information message
+ * @Warning warning message
+ * @Error error message
+*/
+enum class ESPEasyCfgMessageType {Info, Warning, Error};
+typedef std::function<void(const char*, ESPEasyCfgMessageType)> MessageHandlerFunction;
 
 class ESPEasyCfg
 {
@@ -46,6 +54,7 @@ class ESPEasyCfg
         ArRequestHandlerFunction _rootHandler;      //!< Root handler (if installed)
         ArRequestHandlerFunction _notFoundHandler;  //!< 404 error handler
         StateHandlerFunction _stateHandler;         //!< Custom handler for monitoring state
+        MessageHandlerFunction _msgHandler;         //!< Custom handler for monitoring messages
         /**
          * Serialize parameters to JSON
          * @param arr JSON array to put parameters to
@@ -101,6 +110,26 @@ class ESPEasyCfg
          */
         void setLed(bool state);
 
+        /**
+         * Send information message to handler
+        */
+        void infoMessage(const char* msg);
+
+        /**
+         * Send warning message to handler
+        */
+        void warningMessage(const char* msg);
+
+        /**
+         * Send error message to handler
+        */
+        void errorMessage(const char* msg);
+
+        /**
+         * Scan available WiFi networks
+        */
+        void scanNetworks();
+
     public:
 #ifdef ESP32
         /**
@@ -147,19 +176,19 @@ class ESPEasyCfg
          * Set the root handler function for a normal usage
          * @param func Handler to install to handle root 
          */
-        void setRootHandler(ArRequestHandlerFunction func);
+        inline void setRootHandler(ArRequestHandlerFunction func) {  _rootHandler = func; }
 
         /**
          * Set the not foung handler function for a normal usage
          * @param func Handler to install to handle 404 errors 
          */
-        void setNotFoundHandler(ArRequestHandlerFunction func);
+        inline void setNotFoundHandler(ArRequestHandlerFunction func) {  _notFoundHandler = func; }
 
         /**
          * Sets the LED pin
          * @param pin Pin number (active high)
          */
-        void setLedPin(int8_t pin);
+        inline void setLedPin(int8_t pin) { _ledPin = pin; }
 
         /**
          * Sets if the LED is active low or high
@@ -173,26 +202,32 @@ class ESPEasyCfg
          * Sets the switch pin to reset configuration
          * @param pin Pin number (active low)
          */
-        void setSwitchPin(int8_t pin);
+        inline void setSwitchPin(int8_t pin) { _switchPin = pin; }
 
         /**
          * Adds a parameter group to be managed by the captive portal
          * This method must be called before begin!
          * @param grp Parameter group to be added on configuration page
          */
-        void addParameterGroup(ESPEasyCfgParameterGroup* grp);
+        inline void addParameterGroup(ESPEasyCfgParameterGroup* grp) { _paramGrp.add(grp); }
 
         /**
          * Sets a state handler callback to be called when portal state
          * changes
          * @handler Handler function to be called
          */
-        void setStateHandler(StateHandlerFunction handler);
+        inline void setStateHandler(StateHandlerFunction handler) { _stateHandler = handler; }
 
         /**
          * Save actual parameters values to flash
          */
         void saveParameters();
+
+        /**
+         * Sets the handler to be called to get portal messages
+         * @param handler Handler function to be called
+        */
+        inline void setMessageHandler(MessageHandlerFunction handler) { _msgHandler = handler; }
 };
 
 

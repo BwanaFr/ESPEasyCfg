@@ -41,7 +41,7 @@ ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer) :
     _paramGrp("Global settings"), _state(ESPEasyCfgState::WillConnect),
      _cfgHandler(nullptr), _dnsServer(nullptr), _paramManager(nullptr),
      _lastCon(0), _lastApUsage(0), _ledPin(UNUSED_PIN), _ledActiveLow(false),
-     _switchPin(UNUSED_PIN), _scanCount(0)
+     _switchPin(UNUSED_PIN), _scanCount(-1)
 {
     //Add built-in parameters to the group
     _paramGrp.add(&_iotName);
@@ -166,18 +166,22 @@ void ESPEasyCfg::begin()
         return false;
     });
 
+    //Server static files
+    infoMessage("Mounting SPIFFS");
+    SPIFFS.begin(true);
+
     //Parameter handler. Default to ESPEasyCfgParameterManagerJSON if not specified
+    infoMessage("Open portal configuration");
     if(_paramManager == nullptr){
         _paramManager = new ESPEasyCfgParameterManagerJSON();
     }
     _paramManager->init(&_paramGrp);
     //Load parameters from file
     _paramManager->loadParameters(&_paramGrp, CFG_VERSION);
-    //Install HTTP handlers
-    //Server static files
-    SPIFFS.begin();
 
+    //Install HTTP handlers   
     //Register static files stored into flash (Libraries (JQuery, Bootstrap) and config page)
+    infoMessage("Regitering portal web pages");
     _fileHandler = registerStaticFiles(_webServer);
     //Root handling
     _webServer->on("/", HTTP_GET, [=](AsyncWebServerRequest *request){
@@ -261,13 +265,15 @@ void ESPEasyCfg::begin()
         response->addHeader("Cache-Control", "max-age=10");
         JsonObject& root = (JsonObject&)response->getRoot();
         JsonArray arr = root.createNestedArray("networks");
-        for (int i = 0; i < _scanCount; ++i) {
+        int n = WiFi.scanComplete();
+        for (int i = 0; i < n; ++i) {
             JsonObject network = arr.createNestedObject();
             network["SSID"] = WiFi.SSID(i);
             network["RSSI"] = WiFi.RSSI(i);
             network["open"] = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
             network["channel"] = WiFi.channel(i);
         }
+        
         response->setLength();
         request->send(response);
         if(_state == ESPEasyCfgState::AP){
@@ -300,16 +306,10 @@ void ESPEasyCfg::begin()
         }
     });
 
-    //Scan networks
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-#ifdef ESP8266
-    delay(200);
-#endif
-    _scanCount = WiFi.scanNetworks();
-
+    
     //Connect to WiFi
     if(_wifiSSID.getValue().length()>0){
+        scanNetworks();
         //Configuration already done, we must switch to AP mode and start
         WiFi.begin();
     }else{
@@ -325,7 +325,7 @@ void ESPEasyCfg::begin()
                     1,                   /* Priority of the task. */
                     NULL);               /* Task handle. */
 #endif
-
+    infoMessage("Portal configured!");
 }
 
 ESPEasyCfgState ESPEasyCfg::getState()
@@ -366,14 +366,8 @@ void ESPEasyCfg::switchToAP()
 {
     _lastApUsage = millis();
     //Scan networks before switching to AP mode
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-#ifdef ESP8266
-    delay(200);
-#endif
-    _scanCount = WiFi.scanNetworks();
-
     DebugPrintln("Switching to AP mode");
+    scanNetworks();
     WiFi.mode(WIFI_AP);
     if(_iotPass.getValue().length()>0){
         //Enable authentication on AP if a password is set
@@ -518,36 +512,6 @@ void ESPEasyCfg::loop()
 #endif
 }
 
-void ESPEasyCfg::setRootHandler(ArRequestHandlerFunction func)
-{
-    _rootHandler = func;
-}
-
-void ESPEasyCfg::setNotFoundHandler(ArRequestHandlerFunction func)
-{
-    _notFoundHandler = func;
-}
-
-void ESPEasyCfg::setLedPin(int8_t pin)
-{
-    _ledPin = pin;
-}
-
-void ESPEasyCfg::setSwitchPin(int8_t pin)
-{
-    _switchPin = pin;
-}
-
-void ESPEasyCfg::addParameterGroup(ESPEasyCfgParameterGroup* grp)
-{
-    _paramGrp.add(grp);
-}
-
-void ESPEasyCfg::setStateHandler(StateHandlerFunction handler)
-{
-    _stateHandler = handler;
-}
-
 void ESPEasyCfg::setState(ESPEasyCfgState newState)
 {
     if(newState  != _state){
@@ -568,7 +532,38 @@ void ESPEasyCfg::setLed(bool state) {
     }
 }
 
+void ESPEasyCfg::infoMessage(const char* msg) {
+    if(_msgHandler){
+        _msgHandler(msg, ESPEasyCfgMessageType::Info);
+    }
+}
+
+void ESPEasyCfg::warningMessage(const char* msg) {
+    if(_msgHandler){
+        _msgHandler(msg, ESPEasyCfgMessageType::Warning);
+    }
+}
+
+void ESPEasyCfg::errorMessage(const char* msg) {
+    if(_msgHandler){
+        _msgHandler(msg, ESPEasyCfgMessageType::Error);
+    }
+}
+
+
 void ESPEasyCfg::saveParameters() {
     if(_paramManager)
         _paramManager->saveParameters(&_paramGrp, CFG_VERSION);
+}
+
+void ESPEasyCfg::scanNetworks() {
+//Scan networks
+    infoMessage("Scanning WiFi networks");
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+#ifdef ESP8266
+    delay(200);
+#endif
+    _scanCount = WiFi.scanNetworks();
+    infoMessage("Scan done");
 }

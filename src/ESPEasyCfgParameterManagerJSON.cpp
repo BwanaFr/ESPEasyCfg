@@ -8,6 +8,9 @@
 #include <FS.h>
 #endif
 
+#define JSON_BUFFER_SIZE 1024
+#define PARAMETER_JSON_FILE "/parameters.json"
+
 ESPEasyCfgParameterManagerJSON::ESPEasyCfgParameterManagerJSON() : ESPEasyCfgParameterManager()
 {    
 }

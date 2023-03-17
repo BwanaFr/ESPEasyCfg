@@ -8,7 +8,26 @@
 #define MAX_STRING_SIZE 64
 
 
-class ESPEasyCfgParameterGroup;
+class ESPEasyCfgAbstractParameter;
+
+/**
+ * Group of parameters
+ */
+class ESPEasyCfgParameterGroup
+{
+private:
+    const char* _name;
+    ESPEasyCfgAbstractParameter *_first;
+    ESPEasyCfgParameterGroup *_next;
+public:
+    ESPEasyCfgParameterGroup(const char* name);
+    virtual ~ESPEasyCfgParameterGroup();
+    const char* getName() const;
+    ESPEasyCfgAbstractParameter* getFirst();
+    void add(ESPEasyCfgAbstractParameter* param);
+    void add(ESPEasyCfgParameterGroup* paramGrp);
+    ESPEasyCfgParameterGroup* getNext();
+};
 
 /**
  * A generic parameter interface
@@ -34,6 +53,15 @@ public:
             const char* extraAttributes = nullptr) : 
             _id(id), _name(name), _description(description), _extraAttributes(extraAttributes), 
             _hidden(false), _nextParam(nullptr){}
+
+    ESPEasyCfgAbstractParameter(ESPEasyCfgParameterGroup& group, const char* id, const char* name, 
+            const char* description = nullptr,
+            const char* extraAttributes = nullptr) : 
+            _id(id), _name(name), _description(description), _extraAttributes(extraAttributes), 
+            _hidden(false), _nextParam(nullptr)
+    {
+        group.add(this);
+    }           
 
     /**
      * Return a string representation of the parameter
@@ -140,6 +168,8 @@ private:
 public:
     ESPEasyCfgParameter(const char* id, const char* name, T defaultValue, const char* description = nullptr,
                         const char* extraAttributes = nullptr);
+    ESPEasyCfgParameter(ESPEasyCfgParameterGroup& group, const char* id, const char* name, T defaultValue, const char* description = nullptr,
+                        const char* extraAttributes = nullptr);
     virtual ~ESPEasyCfgParameter();
     String toString() override;
     size_t getStorageSize() override;
@@ -158,6 +188,12 @@ template<typename T>
 ESPEasyCfgParameter<T>::ESPEasyCfgParameter(const char* id, const char* name, T defaultValue,
     const char* description, const char* extraAttributes) : 
     ESPEasyCfgAbstractParameter(id, name, description, extraAttributes), _value(defaultValue), _type(nullptr)
+{}
+
+template<typename T>
+ESPEasyCfgParameter<T>::ESPEasyCfgParameter(ESPEasyCfgParameterGroup& group, const char* id, const char* name, T defaultValue,
+    const char* description, const char* extraAttributes) : 
+    ESPEasyCfgAbstractParameter(group, id, name, description, extraAttributes), _value(defaultValue), _type(nullptr)
 {}
 
 template<typename T>
@@ -280,6 +316,8 @@ bool ESPEasyCfgParameter<T>::setValue(const char* value, String& msg, int8_t& ac
 
 template<> ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(const char* id, const char* name, 
                                                     char* defaultValue, const char* description, const char* extraAttributes); 
+template<> ESPEasyCfgParameter<char*>::ESPEasyCfgParameter(ESPEasyCfgParameterGroup& group, const char* id, const char* name, 
+                                                    char* defaultValue, const char* description, const char* extraAttributes); 
 
 template<> ESPEasyCfgParameter<char*>::~ESPEasyCfgParameter();
 
@@ -315,25 +353,6 @@ template<> bool ESPEasyCfgParameter<int32_t>::setValue(const char* value, String
 template<> bool ESPEasyCfgParameter<int16_t>::setValue(const char* value, String& msg, int8_t& action, bool validate);
 template<> bool ESPEasyCfgParameter<uint32_t>::setValue(const char* value, String& msg, int8_t& action, bool validate);
 template<> bool ESPEasyCfgParameter<uint16_t>::setValue(const char* value, String& msg, int8_t& action, bool validate);
-
-/**
- * Group of parameters
- */
-class ESPEasyCfgParameterGroup
-{
-private:
-    const char* _name;
-    ESPEasyCfgAbstractParameter *_first;
-    ESPEasyCfgParameterGroup *_next;
-public:
-    ESPEasyCfgParameterGroup(const char* name);
-    virtual ~ESPEasyCfgParameterGroup();
-    const char* getName() const;
-    ESPEasyCfgAbstractParameter* getFirst();
-    void add(ESPEasyCfgAbstractParameter* param);
-    void add(ESPEasyCfgParameterGroup* paramGrp);
-    ESPEasyCfgParameterGroup* getNext();
-};
 
 /**
  * Abstract class to load/save parameters
