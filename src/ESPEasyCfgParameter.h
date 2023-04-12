@@ -21,6 +21,7 @@ private:
     ESPEasyCfgParameterGroup *_next;
 public:
     ESPEasyCfgParameterGroup(const char* name);
+    ESPEasyCfgParameterGroup(ESPEasyCfgParameterGroup* paramGrp, const char* name);
     virtual ~ESPEasyCfgParameterGroup();
     const char* getName() const;
     ESPEasyCfgAbstractParameter* getFirst();
