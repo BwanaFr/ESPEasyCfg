@@ -12,6 +12,7 @@ public:
     void init(ESPEasyCfgParameterGroup* firstGroup);    
     bool saveParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version);
     bool loadParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version);
+    void resetToFactory();
 private:
     JsonVariant locateByID(JsonArray& arr, const char* id);
 };
