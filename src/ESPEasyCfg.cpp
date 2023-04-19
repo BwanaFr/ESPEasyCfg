@@ -569,18 +569,6 @@ void ESPEasyCfg::scanNetworks() {
 }
 
 void ESPEasyCfg::resetToDefaults() {
+    //TODO: Reset the captive portal without reseting ESP
     _paramManager->resetToFactory();
-    //Reload parameters from file
-    _paramManager->loadParameters(&_paramGrp, CFG_VERSION);
-    //Connect to WiFi
-    if(_wifiSSID.getValue().length()>0){
-        scanNetworks();
-        //Configuration already done, we must switch to AP mode and start
-        WiFi.begin();
-    }else{
-        //Not configured, switch to AP mode
-        switchToAP();
-    }
-    if(_stateHandler)
-        _stateHandler(ESPEasyCfgState::Reconfigured);
 }
