@@ -266,6 +266,12 @@ void ESPEasyCfg::begin()
         JsonObject& root = (JsonObject&)response->getRoot();
         JsonArray arr = root.createNestedArray("networks");
         int n = WiFi.scanComplete();
+#ifdef ESP32
+        while(n < 0){
+            yield();
+            n = WiFi.scanComplete();
+        }
+#endif
         for (int i = 0; i < n; ++i) {
             JsonObject network = arr.createNestedObject();
             network["SSID"] = WiFi.SSID(i);
@@ -279,6 +285,9 @@ void ESPEasyCfg::begin()
         if(_state == ESPEasyCfgState::AP){
             _lastApUsage = millis();
         }
+#ifdef ESP32
+        scanNetworks();
+#endif
     });
     _webServer->onNotFound([=](AsyncWebServerRequest * request){
         if(_state == ESPEasyCfgState::AP){
@@ -305,13 +314,13 @@ void ESPEasyCfg::begin()
             }
         }
     });
-
     
     //Connect to WiFi
     if(_wifiSSID.getValue().length()>0){
-        scanNetworks();
         //Configuration already done, we must switch to AP mode and start
         WiFi.begin();
+        delay(50);
+        scanNetworks();
     }else{
         //Not configured, switch to AP mode
         switchToAP();
@@ -558,14 +567,17 @@ void ESPEasyCfg::saveParameters() {
 
 void ESPEasyCfg::scanNetworks() {
 //Scan networks
+#ifdef ESP8266
     infoMessage("Scanning WiFi networks");
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
-#ifdef ESP8266
     delay(200);
-#endif
     _scanCount = WiFi.scanNetworks();
     infoMessage("Scan done");
+#else
+    //To an async scan    
+    WiFi.scanNetworks(true, false, false);
+#endif    
 }
 
 void ESPEasyCfg::resetToDefaults() {
