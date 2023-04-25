@@ -423,7 +423,7 @@ void ESPEasyCfg::loop()
     static bool ledState = false;
 #ifdef ESP32
     while(true){
-        esp_task_wdt_reset();
+        delay(5);
 #endif		
         unsigned long now = millis();
         switch(_state){
