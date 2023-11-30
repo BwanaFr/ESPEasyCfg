@@ -266,12 +266,10 @@ void ESPEasyCfg::begin()
         JsonObject& root = (JsonObject&)response->getRoot();
         JsonArray arr = root.createNestedArray("networks");
         int n = WiFi.scanComplete();
-#ifdef ESP32
-        while(n < 0){
-            yield();
-            n = WiFi.scanComplete();
+        if(n == -2){
+            this->scanNetworks();
         }
-#endif
+        root["count"] = n;
         for (int i = 0; i < n; ++i) {
             JsonObject network = arr.createNestedObject();
             network["SSID"] = WiFi.SSID(i);
@@ -279,15 +277,11 @@ void ESPEasyCfg::begin()
             network["open"] = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
             network["channel"] = WiFi.channel(i);
         }
-        
         response->setLength();
         request->send(response);
         if(_state == ESPEasyCfgState::AP){
             _lastApUsage = millis();
         }
-#ifdef ESP32
-        scanNetworks();
-#endif
     });
     _webServer->onNotFound([=](AsyncWebServerRequest * request){
         if(_state == ESPEasyCfgState::AP){
@@ -568,12 +562,7 @@ void ESPEasyCfg::saveParameters() {
 void ESPEasyCfg::scanNetworks() {
 //Scan networks
 #ifdef ESP8266
-    infoMessage("Scanning WiFi networks");
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    delay(200);
-    _scanCount = WiFi.scanNetworks();
-    infoMessage("Scan done");
+    WiFi.scanNetworks(true);
 #else
     //To an async scan    
     WiFi.scanNetworks(true, false, false);
