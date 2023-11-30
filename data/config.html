@@ -47,6 +47,8 @@
 		return this.prop("tagName");
 	};
 	var deviceInfo;
+	var ssidSelect;
+	var ssidLoader;
 	var knownSSID = new Map();
 	function SSIDChanged(){	
 		let sel = $("#_wifiSSID option:checked").val();
@@ -85,9 +87,9 @@
 		$('#modalMsg').modal();
 	}
 
-	function scanWiFi(dest, loader){
-		dest.prop('disabled', true);
-		dest.change(SSIDChanged);
+	function scanWiFi(){
+		ssidSelect.prop('disabled', true);
+		ssidSelect.change(SSIDChanged);
 		$.ajax('/scan',
 		{
 			crossDomain: true,
@@ -101,10 +103,14 @@
 			dataType: 'json', // type of response data
 			timeout: 30000,     // timeout milliseconds
 			success: function (data,status,xhr) {
+				if(data.count < 0){
+					//Scan in progress
+					window.setTimeout(scanWiFi, 2000)
+				}
 				console.log("WiFi scan completed");
-				let $optSel = dest.find("option:selected");
+				let $optSel = ssidSelect.find("option:selected");
 				let selFound = false;
-				dest.empty();
+				ssidSelect.empty();
 				knownSSID.clear();
 				data.networks.forEach(function (item, index) {
 					knownSSID.set(item.SSID, item);
@@ -116,15 +122,15 @@
 						$option.attr("value", currentValue.SSID);
 						selFound = true;
 					}
-					dest.append($option);
+					ssidSelect.append($option);
 					$option.html(currentValue.SSID);
 				});
 				if(!selFound) {
-					dest.append($optSel);
+					ssidSelect.append($optSel);
 				}
-				dest.append($("<option>").val("__HIDDEN").text("Hidden SSID..."));
-				dest.prop('disabled', false);
-				loader.hide();
+				ssidSelect.append($("<option>").val("__HIDDEN").text("Hidden SSID..."));
+				ssidSelect.prop('disabled', false);
+				ssidLoader.hide();
 				SSIDChanged();				
 			},
 			error: function (jqXhr, textStatus, errorMessage) {
@@ -186,18 +192,18 @@
 				$div.append($label);
 				if(parameter.type && parameter.type=="ssid"){
 					//Network scan result
-					$loader = $('<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>');
-					$label.before($loader);
-					$select = $("<select>", {id:parameter.id, "name":parameter.id, "class":"form-control"});
-					$div.append($select);
+					ssidLoader = $('<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>');
+					$label.before(ssidLoader);
+					ssidSelect = $("<select>", {id:parameter.id, "name":parameter.id, "class":"form-control"});
+					$div.append(ssidSelect);
 					if(parameter.value){
 						$option = $("<option>");
 						$option.select();
 						$option.attr("value", parameter.value);
-						$select.append($option);
+						ssidSelect.append($option);
 						$option.html(parameter.value);
 					}
-					scanWiFi($select, $loader);
+					scanWiFi();
 				}else if(parameter.type && parameter.type=="enum"){
 					$select = $("<select>", {id:parameter.id, "name":parameter.id, "class":"form-control"});
 					$div.append($select);
