@@ -54,7 +54,7 @@ ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer) :
     _iotName.setExtraAttributes("{\"required\":\"\"}");
 }
 
-ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer, const char* thingName) : 
+ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer, const char* thingName) :
     ESPEasyCfg(webServer)
 {
     _iotName.setValue(thingName);
@@ -179,7 +179,7 @@ void ESPEasyCfg::begin()
     //Load parameters from file
     _paramManager->loadParameters(&_paramGrp, CFG_VERSION);
 
-    //Install HTTP handlers   
+    //Install HTTP handlers
     //Register static files stored into flash (Libraries (JQuery, Bootstrap) and config page)
     infoMessage("Regitering portal web pages");
     _fileHandler = registerStaticFiles(_webServer);
@@ -308,7 +308,7 @@ void ESPEasyCfg::begin()
             }
         }
     });
-    
+
     //Connect to WiFi
     if(_wifiSSID.getValue().length()>0){
         //Configuration already done, we must switch to AP mode and start
@@ -371,7 +371,12 @@ void ESPEasyCfg::switchToAP()
     //Scan networks before switching to AP mode
     DebugPrintln("Switching to AP mode");
     scanNetworks();
+#ifdef ESP32
+    WiFi.mode(WIFI_AP_STA);
+#else
     WiFi.mode(WIFI_AP);
+#endif
+
     if(_iotPass.getValue().length()>0){
         //Enable authentication on AP if a password is set
         WiFi.softAP(_iotName.getValue().c_str(), _iotPass.getValue().c_str());
@@ -396,7 +401,7 @@ void ESPEasyCfg::switchToSTA()
         WiFi.begin(_wifiSSID.getValue().c_str(), _wifiPass.getValue().c_str());
     }else{
         WiFi.begin(_wifiSSID.getValue().c_str());
-    }    
+    }
     setState(ESPEasyCfgState::Connecting);
 }
 
@@ -404,7 +409,7 @@ void ESPEasyCfg::switchToSTA()
 void ESPEasyCfg::monitorState()
 #else
 void ESPEasyCfg::loop()
-#endif	
+#endif
 {
     static unsigned long connectStart = 0;
     static unsigned long lastLedChange = 0;
@@ -418,7 +423,7 @@ void ESPEasyCfg::loop()
 #ifdef ESP32
     while(true){
         delay(5);
-#endif		
+#endif
         unsigned long now = millis();
         switch(_state){
             case ESPEasyCfgState::Connecting:
@@ -463,10 +468,10 @@ void ESPEasyCfg::loop()
                 ledTimeOff = 500;
                 if(_wifiSSID.getValue().length()>0){
                     connectStart = now;
-#ifdef ESP32					
+#ifdef ESP32
                     //Wait to have time to send response
                     delay(100);
-#endif					
+#endif
                     switchToSTA();
                 }else{
                     switchToAP();
@@ -510,7 +515,7 @@ void ESPEasyCfg::loop()
                 }
             }
         }
-#ifdef ESP32		
+#ifdef ESP32
     }
 #endif
 }
@@ -564,9 +569,9 @@ void ESPEasyCfg::scanNetworks() {
 #ifdef ESP8266
     WiFi.scanNetworks(true);
 #else
-    //To an async scan    
+    //To an async scan
     WiFi.scanNetworks(true, false, false);
-#endif    
+#endif
 }
 
 void ESPEasyCfg::resetToDefaults() {
