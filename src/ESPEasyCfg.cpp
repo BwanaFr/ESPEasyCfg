@@ -497,7 +497,7 @@ void ESPEasyCfg::loop()
                 ledTimeOff = 5000;
                 if(WiFi.status() != WL_CONNECTED){
                     // Lost connection to AP, try to reconnect
-                    setState(ESPEasyCfgState::Connecting);
+                    setState(ESPEasyCfgState::WillConnect);
                 }
                 break;
             default:
