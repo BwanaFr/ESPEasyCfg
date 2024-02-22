@@ -54,7 +54,7 @@ ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer) :
     _iotName.setExtraAttributes("{\"required\":\"\"}");
 }
 
-ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer, const char* thingName) : 
+ESPEasyCfg::ESPEasyCfg(AsyncWebServer *webServer, const char* thingName) :
     ESPEasyCfg(webServer)
 {
     _iotName.setValue(thingName);
@@ -179,7 +179,7 @@ void ESPEasyCfg::begin()
     //Load parameters from file
     _paramManager->loadParameters(&_paramGrp, CFG_VERSION);
 
-    //Install HTTP handlers   
+    //Install HTTP handlers
     //Register static files stored into flash (Libraries (JQuery, Bootstrap) and config page)
     infoMessage("Regitering portal web pages");
     _fileHandler = registerStaticFiles(_webServer);
@@ -273,7 +273,7 @@ void ESPEasyCfg::begin()
             network["open"] = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
             network["channel"] = WiFi.channel(i);
         }
-        
+
         response->setLength();
         request->send(response);
         if(_state == ESPEasyCfgState::AP){
@@ -306,7 +306,7 @@ void ESPEasyCfg::begin()
         }
     });
 
-    
+
     //Connect to WiFi
     if(_wifiSSID.getValue().length()>0){
         scanNetworks();
@@ -393,7 +393,7 @@ void ESPEasyCfg::switchToSTA()
         WiFi.begin(_wifiSSID.getValue().c_str(), _wifiPass.getValue().c_str());
     }else{
         WiFi.begin(_wifiSSID.getValue().c_str());
-    }    
+    }
     setState(ESPEasyCfgState::Connecting);
 }
 
@@ -401,7 +401,7 @@ void ESPEasyCfg::switchToSTA()
 void ESPEasyCfg::monitorState()
 #else
 void ESPEasyCfg::loop()
-#endif	
+#endif
 {
     static unsigned long connectStart = 0;
     static unsigned long lastLedChange = 0;
@@ -414,8 +414,8 @@ void ESPEasyCfg::loop()
     static bool ledState = false;
 #ifdef ESP32
     while(true){
-        esp_task_wdt_reset();
-#endif		
+        delay(10);
+#endif
         unsigned long now = millis();
         switch(_state){
             case ESPEasyCfgState::Connecting:
@@ -460,10 +460,10 @@ void ESPEasyCfg::loop()
                 ledTimeOff = 500;
                 if(_wifiSSID.getValue().length()>0){
                     connectStart = now;
-#ifdef ESP32					
+#ifdef ESP32
                     //Wait to have time to send response
                     delay(100);
-#endif					
+#endif
                     switchToSTA();
                 }else{
                     switchToAP();
@@ -487,6 +487,10 @@ void ESPEasyCfg::loop()
             case ESPEasyCfgState::Connected:
                 ledTimeOn = 50;
                 ledTimeOff = 5000;
+                if(WiFi.status() != WL_CONNECTED){
+                    // Lost connection to AP, try to reconnect
+                    setState(ESPEasyCfgState::Connecting);
+                }
                 break;
             default:
                 break;
@@ -507,7 +511,7 @@ void ESPEasyCfg::loop()
                 }
             }
         }
-#ifdef ESP32		
+#ifdef ESP32
     }
 #endif
 }
