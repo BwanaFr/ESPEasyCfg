@@ -269,6 +269,12 @@ ESPEasyCfgParameterGroup::ESPEasyCfgParameterGroup(const char* name) :
 
 }
 
+ESPEasyCfgParameterGroup::ESPEasyCfgParameterGroup(ESPEasyCfgParameterGroup* paramGrp, const char* name) :
+_name(name), _first(nullptr), _next(nullptr)
+{
+    add(paramGrp);
+}
+
 ESPEasyCfgParameterGroup::~ESPEasyCfgParameterGroup()
 {    
 }

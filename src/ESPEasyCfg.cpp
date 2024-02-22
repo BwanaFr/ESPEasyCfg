@@ -266,6 +266,10 @@ void ESPEasyCfg::begin()
         JsonObject& root = (JsonObject&)response->getRoot();
         JsonArray arr = root.createNestedArray("networks");
         int n = WiFi.scanComplete();
+        if(n == -2){
+            this->scanNetworks();
+        }
+        root["count"] = n;
         for (int i = 0; i < n; ++i) {
             JsonObject network = arr.createNestedObject();
             network["SSID"] = WiFi.SSID(i);
@@ -273,7 +277,6 @@ void ESPEasyCfg::begin()
             network["open"] = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
             network["channel"] = WiFi.channel(i);
         }
-
         response->setLength();
         request->send(response);
         if(_state == ESPEasyCfgState::AP){
@@ -306,12 +309,12 @@ void ESPEasyCfg::begin()
         }
     });
 
-
     //Connect to WiFi
     if(_wifiSSID.getValue().length()>0){
-        scanNetworks();
         //Configuration already done, we must switch to AP mode and start
         WiFi.begin();
+        delay(50);
+        scanNetworks();
     }else{
         //Not configured, switch to AP mode
         switchToAP();
@@ -368,7 +371,12 @@ void ESPEasyCfg::switchToAP()
     //Scan networks before switching to AP mode
     DebugPrintln("Switching to AP mode");
     scanNetworks();
+#ifdef ESP32
+    WiFi.mode(WIFI_AP_STA);
+#else
     WiFi.mode(WIFI_AP);
+#endif
+
     if(_iotPass.getValue().length()>0){
         //Enable authentication on AP if a password is set
         WiFi.softAP(_iotName.getValue().c_str(), _iotPass.getValue().c_str());
@@ -562,12 +570,15 @@ void ESPEasyCfg::saveParameters() {
 
 void ESPEasyCfg::scanNetworks() {
 //Scan networks
-    infoMessage("Scanning WiFi networks");
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
 #ifdef ESP8266
-    delay(200);
+    WiFi.scanNetworks(true);
+#else
+    //To an async scan
+    WiFi.scanNetworks(true, false, false);
 #endif
-    _scanCount = WiFi.scanNetworks();
-    infoMessage("Scan done");
+}
+
+void ESPEasyCfg::resetToDefaults() {
+    //TODO: Reset the captive portal without reseting ESP
+    _paramManager->resetToFactory();
 }

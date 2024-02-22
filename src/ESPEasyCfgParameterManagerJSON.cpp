@@ -8,7 +8,10 @@
 #include <FS.h>
 #endif
 
-#define JSON_BUFFER_SIZE 1024
+#ifndef JSON_BUFFER_SIZE
+#define JSON_BUFFER_SIZE 2048
+#endif
+
 #define PARAMETER_JSON_FILE "/parameters.json"
 
 ESPEasyCfgParameterManagerJSON::ESPEasyCfgParameterManagerJSON() : ESPEasyCfgParameterManager()
@@ -117,4 +120,9 @@ JsonVariant ESPEasyCfgParameterManagerJSON::locateByID(JsonArray& arr, const cha
         }
     }
     return JsonVariant();
+}
+
+void ESPEasyCfgParameterManagerJSON::resetToFactory()
+{
+    SPIFFS.remove(PARAMETER_JSON_FILE);
 }

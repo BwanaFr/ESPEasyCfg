@@ -228,6 +228,11 @@ class ESPEasyCfg
          * @param handler Handler function to be called
         */
         inline void setMessageHandler(MessageHandlerFunction handler) { _msgHandler = handler; }
+
+        /**
+         * Resets parameters to default
+        */
+        void resetToDefaults();
 };
 
 

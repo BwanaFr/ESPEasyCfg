@@ -21,6 +21,7 @@ private:
     ESPEasyCfgParameterGroup *_next;
 public:
     ESPEasyCfgParameterGroup(const char* name);
+    ESPEasyCfgParameterGroup(ESPEasyCfgParameterGroup* paramGrp, const char* name);
     virtual ~ESPEasyCfgParameterGroup();
     const char* getName() const;
     ESPEasyCfgAbstractParameter* getFirst();
@@ -381,6 +382,11 @@ public:
      * @return true on success
      */
     virtual bool loadParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version) = 0;
+
+    /**
+     * Resets all settings to default one
+    */
+    virtual void resetToFactory() = 0;
 };
 
 
