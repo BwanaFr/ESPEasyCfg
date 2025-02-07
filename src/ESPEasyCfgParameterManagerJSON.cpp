@@ -3,7 +3,11 @@
 #include "ESPEasyCfgConfiguration.h"
 
 #ifdef ESP32
+#ifdef USE_LITTLE_FS
+#include <LittleFS.h>
+#else
 #include <SPIFFS.h>
+#endif
 #else
 #include <FS.h>
 #endif
@@ -15,7 +19,7 @@
 #define PARAMETER_JSON_FILE "/parameters.json"
 
 ESPEasyCfgParameterManagerJSON::ESPEasyCfgParameterManagerJSON() : ESPEasyCfgParameterManager()
-{    
+{
 }
 
 ESPEasyCfgParameterManagerJSON::~ESPEasyCfgParameterManagerJSON()
@@ -24,8 +28,12 @@ ESPEasyCfgParameterManagerJSON::~ESPEasyCfgParameterManagerJSON()
 
 void ESPEasyCfgParameterManagerJSON::init(ESPEasyCfgParameterGroup* firstGroup)
 {
+#ifdef USE_LITTLE_FS
+    LittleFS.begin(true);
+#else
     //Initialise SPIFFS
     SPIFFS.begin();
+#endif
 }
 
 bool ESPEasyCfgParameterManagerJSON::saveParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version)
@@ -43,7 +51,11 @@ bool ESPEasyCfgParameterManagerJSON::saveParameters(ESPEasyCfgParameterGroup* fi
         }
         grp = grp->getNext();
     }
+#ifdef USE_LITTLE_FS
+    File paramFile = LittleFS.open(PARAMETER_JSON_FILE, "w");
+#else
     File paramFile = SPIFFS.open(PARAMETER_JSON_FILE, "w");
+#endif
     serializeJson(root, paramFile);
     paramFile.close();
     return true;
@@ -52,7 +64,11 @@ bool ESPEasyCfgParameterManagerJSON::saveParameters(ESPEasyCfgParameterGroup* fi
 bool ESPEasyCfgParameterManagerJSON::loadParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version)
 {
     bool ret = false;
+#ifdef USE_LITTLE_FS
+    File configFile = LittleFS.open(PARAMETER_JSON_FILE, "r");
+#else
     File configFile = SPIFFS.open(PARAMETER_JSON_FILE, "r");
+#endif
     if(configFile){
         DynamicJsonDocument json(JSON_BUFFER_SIZE);
         if(deserializeJson(json, configFile) == DeserializationError::Ok) {
@@ -76,7 +92,7 @@ bool ESPEasyCfgParameterManagerJSON::loadParameters(ESPEasyCfgParameterGroup* fi
                                     param->setValue(strVal.c_str(), s, action);
                                 }
                                 DebugPrint(" value ");
-                                if(param->getInputType() && 
+                                if(param->getInputType() &&
                                     (strcmp(param->getInputType(), "password") == 0)){
                                     String paramValue = param->toString();
                                     if(paramValue.length()==0){
@@ -98,7 +114,7 @@ bool ESPEasyCfgParameterManagerJSON::loadParameters(ESPEasyCfgParameterGroup* fi
                     DebugPrint(fVersion);
                     DebugPrint(" expected ");
                     DebugPrintln(version);
-                    ret = false; 
+                    ret = false;
                 }
         } else {
             ret = false;
@@ -124,5 +140,9 @@ JsonVariant ESPEasyCfgParameterManagerJSON::locateByID(JsonArray& arr, const cha
 
 void ESPEasyCfgParameterManagerJSON::resetToFactory()
 {
+#ifdef USE_LITTLE_FS
+    LittleFS.remove(PARAMETER_JSON_FILE);
+#else
     SPIFFS.remove(PARAMETER_JSON_FILE);
+#endif
 }
