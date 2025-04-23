@@ -12,10 +12,6 @@
 #include <FS.h>
 #endif
 
-#ifndef JSON_BUFFER_SIZE
-#define JSON_BUFFER_SIZE 2048
-#endif
-
 #define PARAMETER_JSON_FILE "/parameters.json"
 
 ESPEasyCfgParameterManagerJSON::ESPEasyCfgParameterManagerJSON() : ESPEasyCfgParameterManager()
@@ -38,14 +34,14 @@ void ESPEasyCfgParameterManagerJSON::init(ESPEasyCfgParameterGroup* firstGroup)
 
 bool ESPEasyCfgParameterManagerJSON::saveParameters(ESPEasyCfgParameterGroup* firstGroup, const char* version)
 {
-    DynamicJsonDocument root(JSON_BUFFER_SIZE);
+    JsonDocument  root;
     root["version"] = version;
-    JsonArray arr = root.createNestedArray("parameters");
+    JsonArray arr = root["parameters"].to<JsonArray>();
     ESPEasyCfgParameterGroup* grp = firstGroup;
     while(grp){
         ESPEasyCfgAbstractParameter* param = grp->getFirst();
         while(param){
-            JsonObject p = arr.createNestedObject();
+            JsonObject p = arr.add<JsonObject>();
             param->toJSON(p, true);
             param = param->getNextParameter();
         }
@@ -70,7 +66,7 @@ bool ESPEasyCfgParameterManagerJSON::loadParameters(ESPEasyCfgParameterGroup* fi
     File configFile = SPIFFS.open(PARAMETER_JSON_FILE, "r");
 #endif
     if(configFile){
-        DynamicJsonDocument json(JSON_BUFFER_SIZE);
+        JsonDocument json;
         if(deserializeJson(json, configFile) == DeserializationError::Ok) {
                 const char* fVersion = json["version"];
                 if(strcmp(fVersion, version) == 0){

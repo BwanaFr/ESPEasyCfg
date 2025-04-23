@@ -147,7 +147,7 @@ void ESPEasyCfg::addInfosToJSON(ArduinoJson::JsonArray& arr)
 void ESPEasyCfg::begin()
 {
     //Register parameter callback to validate/act when needed
-    _wifiSSID.setValidator([=](ESPEasyCfgParameter<String> *param, String newValue, String &msg, int8_t& action) -> bool{
+    _wifiSSID.setValidator([this](ESPEasyCfgParameter<String> *param, String newValue, String &msg, int8_t& action) -> bool{
         if((newValue != param->getValue()) || (_state == ESPEasyCfgState::AP))
         {
             if(newValue.length()>0){
@@ -178,7 +178,7 @@ void ESPEasyCfg::begin()
     infoMessage("Regitering portal web pages");
     _fileHandler = registerStaticFiles(_webServer);
     //Root handling
-    _webServer->on("/", HTTP_GET, [=](AsyncWebServerRequest *request){
+    _webServer->on("/", HTTP_GET, [this](AsyncWebServerRequest *request){
         if(_state == ESPEasyCfgState::AP){
             _lastApUsage = millis();
             //In AP mode, we must serve the first page
@@ -197,13 +197,13 @@ void ESPEasyCfg::begin()
     });
 
     //Gets the device configuration as JSON document
-    _webServer->on("/config", HTTP_GET, [=](AsyncWebServerRequest *request){
+    _webServer->on("/config", HTTP_GET, [this](AsyncWebServerRequest *request){
         if((_state != ESPEasyCfgState::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
         AsyncJsonResponse * response = new AsyncJsonResponse(false);
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
-        JsonObject& root = (JsonObject&)response->getRoot();
+        JsonObject root = response->getRoot().as<JsonObject>();
         JsonArray infoArr = root["infos"].to<JsonArray>();
         addInfosToJSON(infoArr);
         JsonArray arr = root["groups"].to<JsonArray>();
@@ -216,7 +216,7 @@ void ESPEasyCfg::begin()
     });
 
     //Handler to receive new configuration
-    _cfgHandler = new AsyncCallbackJsonWebHandler("/configPost", [=](AsyncWebServerRequest *request, JsonVariant &json){
+    _cfgHandler = new AsyncCallbackJsonWebHandler("/configPost", [this](AsyncWebServerRequest *request, JsonVariant &json){
         if((_state != ESPEasyCfgState::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
         JsonObject jsonObj = json.as<JsonObject>();
@@ -227,7 +227,7 @@ void ESPEasyCfg::begin()
         AsyncJsonResponse * response = new AsyncJsonResponse(false);
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
-        JsonObject& root = (JsonObject&)response->getRoot();
+        JsonObject root = response->getRoot().as<JsonObject>();
         JsonArray arr = root["groups"].to<JsonArray>();
         toJSON(arr, &_paramGrp);
         if(str.length()>0){
@@ -250,14 +250,14 @@ void ESPEasyCfg::begin()
 
 
     //Handler to scan networks
-    _webServer->on("/scan", HTTP_GET, [=](AsyncWebServerRequest *request){
+    _webServer->on("/scan", HTTP_GET, [this](AsyncWebServerRequest *request){
         if((_state != ESPEasyCfgState::AP) && (_iotPass.getValue().length()>0) && !request->authenticate("admin", _iotPass.getValue().c_str()))
             return request->requestAuthentication(_iotName.getValue().c_str());
         AsyncJsonResponse * response = new AsyncJsonResponse(false);
         response->addHeader("Server","ESP Async Web Server");
         response->addHeader("Access-Control-Allow-Origin", "*");
         response->addHeader("Cache-Control", "max-age=10");
-        JsonObject& root = (JsonObject&)response->getRoot();
+        JsonObject root = response->getRoot().as<JsonObject>();
         JsonArray arr = root["networks"].to<JsonArray>();
         int n = WiFi.scanComplete();
         if(n == -2){
@@ -277,7 +277,7 @@ void ESPEasyCfg::begin()
             _lastApUsage = millis();
         }
     });
-    _webServer->onNotFound([=](AsyncWebServerRequest * request){
+    _webServer->onNotFound([this](AsyncWebServerRequest * request){
         if(_state == ESPEasyCfgState::AP){
             _lastApUsage = millis();
             DebugPrint("Requested :" );
@@ -319,7 +319,7 @@ void ESPEasyCfg::begin()
                     "ConMonitor",        /* String with name of task. */
                     4096,                /* Stack size in bytes. */
                     this,                /* Parameter passed as input of the task */
-                    1,                   /* Priority of the task. */
+                    0,                   /* Priority of the task. */
                     NULL);               /* Task handle. */
 #endif
     infoMessage("Portal configured!");

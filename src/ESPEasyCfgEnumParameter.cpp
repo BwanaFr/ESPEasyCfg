@@ -91,7 +91,7 @@ void ESPEasyCfgEnumParameter::toJSON(ArduinoJson::JsonObject& dest, bool lightOu
         if(extraAttributes){
             dest["attributes"] = extraAttributes;
         }
-        ArduinoJson::JsonArray values = dest.createNestedArray("values");
+        ArduinoJson::JsonArray values = dest["values"].to<ArduinoJson::JsonArray>();
         char val[MAX_STRING_SIZE];
         _itemSearchOffset = 0;
         while(getNextItem(&val[0])){
